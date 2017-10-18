@@ -4,6 +4,6 @@
 [submodule "hidapi-root/hidapi"]
 	path = hidapi-root/hidapi
 	url = https://github.com/signal11/hidapi
-[submodule "MeasurementComputingCore/mccusb-root/Linux_Drivers"]
-	path = MeasurementComputingCore/mccusb-root/Linux_Drivers
+[submodule "mccusb-root/Linux_Drivers"]
+	path = mccusb-root/Linux_Drivers
 	url = https://github.com/wjasper/Linux_Drivers

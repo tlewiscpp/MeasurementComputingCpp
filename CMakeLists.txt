@@ -14,7 +14,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set (HIDAPI_ROOT hidapi-root)
 set (LIBUSB_ROOT libusb-root)
-set (MCCUSB_ROOT MeasurementComputingCore)
+set (MCCUSB_ROOT mccusb-root)
 set (MCCCPP_ROOT MeasurementComputingCpp)
 
 

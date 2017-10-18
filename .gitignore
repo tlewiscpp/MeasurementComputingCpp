@@ -113,3 +113,6 @@ Release
 *.user
 *.suo
 *.sdf
+
+#when the repository has had it's submodules initialized
+.repo-init

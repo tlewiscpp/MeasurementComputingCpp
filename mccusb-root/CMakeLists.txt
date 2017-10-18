@@ -4,8 +4,8 @@ set (PROJECT_NAME mccusb-libusb-static)
 project (${PROJECT_NAME})
 set (BUILD_SHARED_LIBRARIES FALSE)
 
-set(LIBUSB_SOURCE_ROOT ../../libusb-root)
-set(HIDAPI_SOURCE_ROOT ../../hidapi-root)
+set(LIBUSB_SOURCE_ROOT ../libusb-root)
+set(HIDAPI_SOURCE_ROOT ../hidapi-root)
 set(LIBUSB_SOURCE_DIR ${LIBUSB_SOURCE_ROOT}/libusb/libusb/)
 set(HIDAPI_SOURCE_DIR ${HIDAPI_SOURCE_ROOT}/hidapi/hidapi)
 
