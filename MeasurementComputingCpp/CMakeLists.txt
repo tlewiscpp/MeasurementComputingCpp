@@ -4,7 +4,7 @@ set (PROJECT_NAME MeasurementComputingCpp)
 project (${PROJECT_NAME} CXX)
 set (BUILD_SHARED_LIBRARIES TRUE)
 
-set(MCCUSB_LIBUSB_SOURCE_DIR ../MeasurementComputingCore/mccusb-root/Linux_Drivers/USB/)
+set(MCCUSB_LIBUSB_SOURCE_DIR ../mccusb-root/Linux_Drivers/USB/)
 
 set (SOURCE_ROOT .)
 

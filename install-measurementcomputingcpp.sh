@@ -1,5 +1,5 @@
 
-#!/bin/bash
+#!/bin/bash -e
 
 ##########################################
 # install-measurementcomputingcpp.sh
@@ -350,6 +350,10 @@ else
 fi
 if ! [[ -d "$buildDir" ]]; then
     createDirectory "$buildDir" || { echo "Unable to make build directory \"$buildDir\", exiting"; exit 1; }
+fi
+
+if [[ ! -f ".init-repo" ]]; then
+    source init-repository.sh
 fi
 
 checkLibUdev || { echo "Unable to link libudev, bailing out"; exit 1; }
