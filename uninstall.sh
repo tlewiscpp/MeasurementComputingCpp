@@ -1,8 +1,8 @@
 
-#!/bin/bash -e
+#!/bin/bash
 
 ##########################################
-# install-measurementcomputingcpp.sh
+# uninstall-measurementcomputingcpp.sh
 #
 # Intended to be a placeholder until 
 # I learn how to add a sudo make 
@@ -30,46 +30,6 @@ function bailout() {
     rm -rf "$buildDir"
 }
 
-function displayHelp() {
-    echo "Usage: install-$programName.sh [--install/--uninstall] [build-dir]"
-}
-
-function doInternetCheck() {
-
-    echo -n "Checking for Cygwin..."
-    cygwinCheck=$(uname -a | grep -i 'cygwin')
-    showSuccess
-
-    echo -n "Checking for internet connection..."
-    if [[ -z "$cygwinCheck" ]]; then
-        internetCheck=$(ping 8.8.8.8 -n1 | grep -i 'received = 1')
-    else
-        internetCheck=$(ping 8.8.8.8 -c1 -W1 | grep -i '1 received')
-    fi
-
-    if [[ -z "$internetCheck" ]]; then
-        showFailure
-        return 1
-    else 
-        showSuccess
-        return 0
-    fi
-}
-
-function doCygwinCheck() {
-    echo -n "Checking for Cygwin..."
-    cygwinCheck=$(uname -a | grep -i 'cygwin')
-    msysCheck=$(uname -a | grep -i 'msys')
-    showSuccess
-
-    echo -n "Setting sudo to correct value..."
-    if [[ -z "$cygwinCheck" && -z "$msysCheck" ]]; then
-        SUDO="sudo"
-    else
-        SUDO=""
-    fi
-    showSuccess
-}
 
 function cleanUp() {
     echo "All cleaned up"
@@ -87,6 +47,42 @@ function showFailure() {
 function removeFile() {
     echo -n "Removing \"$1\"..."
     rm -f "$1"
+    if [[ "$?" -ne "0" ]]; then
+        showFailure
+        return 1
+    else 
+        showSuccess
+        return 0
+    fi
+}
+
+function removeDirectory() {
+    echo -n "Removing directory \"$1\"..."
+    rm -rf "$1"
+    if [[ "$?" -ne "0" ]]; then
+        showFailure
+        return 1
+    else 
+        showSuccess
+        return 0
+    fi
+}
+
+function suRemoveDirectory() {
+    echo -n "Removing directory \"$1\"..."
+    $SUDO rm -rf "$1"
+    if [[ "$?" -ne "0" ]]; then
+        showFailure
+        return 1
+    else 
+        showSuccess
+        return 0
+    fi
+}
+
+function suRemoveFile() {
+    echo -n "Removing \"$1\"..."
+    $SUDO rm -f "$1"
     if [[ "$?" -ne "0" ]]; then
         showFailure
         return 1
@@ -294,9 +290,6 @@ function checkLibUdev() {
     fi
 }   
 
-buildDir="build"
-appDir="$HOME/.local/share/applications/"
-
 if [[ "$EUID" -eq "0" ]]; then
     SUDO=
 else
@@ -305,71 +298,16 @@ fi
 
 trap bailout INT QUIT TERM
 
-declare -i incrementPatchVersion
-declare -i incrementMinorVersion
-declare -i incrementMajorVersion
+somethingFailed=""
+suRemoveDirectory "$globalIncludeDir/$programName/" || { echo "Could not remove include path headers. Remove them manually"; somethingFailed="1"; }
+suRemoveFile "$globalLibDir/lib$programName.so" || { echo "Could not remove library file. Remove it manually"; somethingFailed="1"; }
 
-incrementPatchVersion=0
-incrementMinorVersion=0
-incrementMajorVersion=0
-buildAndroid=0
-verboseOutput=0
-
-declare -i loopCounter
-loopCounter=0
-for var in "$@"; do
-    if [[ "$var" == "-r" || "$var" == "--r" || "$var" == "-release" || "$var" == "--release" ]]; then
-        buildType="Release"
-    elif [[ "$var" == "-d" || "$var" == "--d" || "$var" == "-debug" || "$var" == "--debug" ]]; then
-        buildType="Debug"
-    elif [[ "$var" == "-p" || "$var" == "--p" || "$var" == "-patch" || "$var" == "--patch" || "$var" == "-increment-patch" || "$var" == "--increment-patch" ]]; then
-        incrementPatchVersion=1
-    elif [[ "$var" == "-i" || "$var" == "--i" || "$var" == "-minor" || "$var" == "--minor" || "$var" == "-increment-minor" || "$var" == "--increment-minor" ]]; then
-        incrementMinorVersion=1
-    elif [[ "$var" == "-m" || "$var" == "--m" || "$var" == "-major" || "$var" == "--major" || "$var" == "-increment-major" || "$var" == "--increment-major" ]]; then
-        incrementMajorVersion=1
-    elif [[ "$var" == "-a" || "$var" == "--a" || "$var" == "-android" || "$var" == "--android" ]]; then
-        buildAndroid=1
-    elif [[ "$var" == "-v" || "$var" == "--v" || "$var" == "-verbose" || "$var" == "--verbose" ]]; then
-        verboseOutput=1
-    fi
-    loopCounter=$((loopCounter+1))
-done
-
-if [[ $# -gt 0 ]]; then 
-    var=""
-    buildDir="$filePath/$buildDir"
-    for var in "$@"; do
-        if [[ $var == -* ]]; then
-            continue
-        fi
-        buildDir="$var"
-    done
+if [[ -z "$somethingFailed" ]]; then
+    installMessage="$programLongName Uninstalled Successfully!"
 else
-    buildDir="$filePath/$buildDir"
-fi
-if ! [[ -d "$buildDir" ]]; then
-    createDirectory "$buildDir" || { echo "Unable to make build directory \"$buildDir\", exiting"; exit 1; }
+    installMessage="$programLongName did not uninstall successfully, manual removal is necessary. See above for problems"
 fi
 
-if [[ ! -f ".init-repo" ]]; then
-    source init-repository.sh
-fi
-
-checkLibUdev || { echo "Unable to link libudev, bailing out"; exit 1; }
-changeDirectory "$buildDir" || { echo "Unable to enter build directory \"$buildDir\", bailing out"; exit 1; }
-runCmake "$filePath" || { echo "cmake failed, bailing out"; exit 1; }
-runMake || { echo "make failed, bailing out"; exit 1; }
-suCopyFile "$buildDir/$programName/lib$programName.so" "$globalLibDir"  || { echo "Could not copy file, bailing out"; exit 1; }
-
-suCopyFile "$buildDir/$programName/lib$programName.so" "$globalLibDir"  || { echo "Could not copy file, bailing out"; exit 1; }
-
-suCreateDirectory "$globalIncludeDir/$programName"
-$SUDO cp -R "$filePath/$programName/*.hpp" "$globalIncludeDir/$programName/"
-
-createDirectory "$HOME/Desktop" || { echo "Could not create directory \"$HOME/Desktop\", bailing out"; exit 1; }
-
-installMessage="$programLongName Installed Successfully!"
 totalLength=${#installMessage} 
 
 echo
