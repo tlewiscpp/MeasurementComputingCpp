@@ -59,7 +59,6 @@ set (${PROJECT_NAME}_HEADER_FILES
         ${SOURCE_ROOT}/version_nano.h
         ${SOURCE_ROOT}/libusbi.h
         ${SOURCE_ROOT}/libusb.h
-        libudev.h
         config.h
         )
 else()
@@ -70,7 +69,6 @@ else()
             ${SOURCE_ROOT}/io.c
             ${SOURCE_ROOT}/sync.c
             ${SOURCE_ROOT}/strerror.c
-            ${SOURCE_ROOT}/os/linux_udev.c
             ${SOURCE_ROOT}/os/linux_usbfs.c
             ${SOURCE_ROOT}/os/poll_posix.c
             ${SOURCE_ROOT}/os/threads_posix.c
@@ -83,16 +81,15 @@ else()
             ${SOURCE_ROOT}/version_nano.h
             ${SOURCE_ROOT}/libusbi.h
             ${SOURCE_ROOT}/libusb.h
-            libudev.h
             config.h
             )
 
 endif()
 
 
-add_library(usb-1.0-static STATIC
+add_library(${PROJECT_NAME} STATIC
         ${${PROJECT_NAME}_SOURCE_FILES}
-        )
+        ${${PROJECT_NAME}_HEADER_FILES})
 
 if (WIN32)
     target_include_directories(${PROJECT_NAME}
