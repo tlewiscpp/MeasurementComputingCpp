@@ -1,7 +1,7 @@
 #include <cstring>
 
-#include "mcc-libusb/pmd.h"
-#include "mcc-libusb/usb-1608FS.h"
+#include <mcc-libusb/pmd.h>
+#include <mcc-libusb/usb-1608FS.h>
 
 #include "USB_1608FS.hpp"
 

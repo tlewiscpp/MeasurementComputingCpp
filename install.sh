@@ -34,43 +34,6 @@ function displayHelp() {
     echo "Usage: install-$programName.sh [--install/--uninstall] [build-dir]"
 }
 
-function doInternetCheck() {
-
-    echo -n "Checking for Cygwin..."
-    cygwinCheck=$(uname -a | grep -i 'cygwin')
-    showSuccess
-
-    echo -n "Checking for internet connection..."
-    if [[ -z "$cygwinCheck" ]]; then
-        internetCheck=$(ping 8.8.8.8 -n1 | grep -i 'received = 1')
-    else
-        internetCheck=$(ping 8.8.8.8 -c1 -W1 | grep -i '1 received')
-    fi
-
-    if [[ -z "$internetCheck" ]]; then
-        showFailure
-        return 1
-    else 
-        showSuccess
-        return 0
-    fi
-}
-
-function doCygwinCheck() {
-    echo -n "Checking for Cygwin..."
-    cygwinCheck=$(uname -a | grep -i 'cygwin')
-    msysCheck=$(uname -a | grep -i 'msys')
-    showSuccess
-
-    echo -n "Setting sudo to correct value..."
-    if [[ -z "$cygwinCheck" && -z "$msysCheck" ]]; then
-        SUDO="sudo"
-    else
-        SUDO=""
-    fi
-    showSuccess
-}
-
 function cleanUp() {
     echo "All cleaned up"
 }
@@ -262,37 +225,11 @@ function bailout() {
 }
 
 function generateDesktopFile() {
-    copyFile "$utilityDir/$skeletonDesktopFileName" "$buildDir/$desktopFileName" || { echo "Failed to generate desktop file, bailing out"; exit 1; }
-    copyFile "$iconPath" "$buildDir/" || { echo "Failed to generate desktop file, bailing out"; exit 1; }  
-    appendStringToFile "Exec=$buildDir/inspection-app/$programName" "$buildDir/$desktopFileName" || { echo "Failed to generate desktop file, bailing out"; exit 1; }
-    appendStringToFile "Icon=$buildDir/$iconName" "$buildDir/$desktopFileName" || { echo "Failed to generate desktop file, bailing out"; exit 1; }
+    copyFile "$utilityDir/$skeletonDesktopFileName" "$buildDir/$desktopFileName" || { echo "Failed to generate desktop file"; exit 1; }
+    copyFile "$iconPath" "$buildDir/" || { echo "Failed to generate desktop file"; exit 1; }  
+    appendStringToFile "Exec=$buildDir/inspection-app/$programName" "$buildDir/$desktopFileName" || { echo "Failed to generate desktop file"; exit 1; }
+    appendStringToFile "Icon=$buildDir/$iconName" "$buildDir/$desktopFileName" || { echo "Failed to generate desktop file"; exit 1; }
 }
-
-function checkLibUdev() {
-    echo -n "Checking for libudev..."
-    msysResult=$(uname -a | grep -i 'msys')
-    cygwinResult=$(uname -a | grep -i 'cygwin')
-    if [[ ! -z "$cygwinResult" || ! -z "$msysResult" ]]; then
-        showSuccess
-        return 0
-    fi
-    arch_result=$(uname -a | grep 'x86_64')
-    if [[ -z "$arch_result" ]]; then
-        ARCH='i386'
-    else
-        ARCH='i686'
-    fi
-    if [[ ! -e "/usr/lib/libudev.so" ]]; then
-        $SUDO ln -s -f /lib/$ARCH-linux-gnu/libudev.so.1 /usr/lib/libudev.so
-    fi
-    if [[ "$?" -ne "0" ]]; then
-        showFailure
-        return 1
-    else 
-        showSuccess
-        return 0
-    fi
-}   
 
 buildDir="build"
 appDir="$HOME/.local/share/applications/"
@@ -356,16 +293,23 @@ if [[ ! -f ".init-repo" ]]; then
     source init-repository.sh
 fi
 
-changeDirectory "$buildDir" || { echo "Unable to enter build directory \"$buildDir\", bailing out"; exit 1; }
-runCmake "$filePath" || { echo "cmake failed, bailing out"; exit 1; }
-runMake || { echo "make failed, bailing out"; exit 1; }
-suCopyFile "$buildDir/$programName/lib$programName.so" "$globalLibDir"  || { echo "Could not copy file, bailing out"; exit 1; }
+changeDirectory "$buildDir" || { echo "Unable to enter build directory \"$buildDir\""; exit 1; }
+runCmake "$filePath" || { echo "cmake failed"; exit 1; }
+runMake || { echo "make failed"; exit 1; }
+suCopyFile "$buildDir/$programName/lib$programName.so" "$globalLibDir"  || { echo "Could not copy file"; exit 1; }
 suCreateDirectory "$globalIncludeDir/$programName"
-for headerFile in $(ls "$filePath/$programName/" | grep '.h'); do
-    suCopyFile "$filePath/$programName/$headerFile" "$globalIncludeDir/$programName/"
+for headerFile in $(ls $filePath/$programName/*.h*); do
+    suCopyFile "$headerFile" "$globalIncludeDir/$programName/" || { echo "Could not copy header file to $programName directory"; exit 1; }
 done
-echo "filePath/programName/ = $filePath/$programName/"
-createDirectory "$HOME/Desktop" || { echo "Could not create directory \"$HOME/Desktop\", bailing out"; exit 1; }
+
+suCopyFile "$filePath/mccusb-root/Linux_Drivers/61-mcc.rules" /etc/udev/rules.d/ || { echo "Could not copy 61-mcc.rules to /etc/udev/rules.d"; exit 1; }
+$SUDO /sbin/udevcontrol --reload_rules || $SUDO /sbin/udevadm control --reload-rules || $SUDO /sbin/udevadm control --reload
+suCreateDirectory "$globalIncludeDir/mcc-libusb" || { echo "Unable to create mcc-libusb directory"; exit 1; }
+for headerFile in $(ls $filePath/mccusb-root/Linux_Drivers/USB/mcc-libusb/*.h*); do
+    suCopyFile "$headerFile" "$globalIncludeDir/mcc-libusb/" || { echo "Unable to copy header file to mccusb directory"; exit 1; }
+done
+
+createDirectory "$HOME/Desktop" || { echo "Could not create directory \"$HOME/Desktop\""; exit 1; }
 
 installMessage="$programLongName Installed Successfully!"
 totalLength=${#installMessage} 

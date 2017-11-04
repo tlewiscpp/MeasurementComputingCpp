@@ -1,8 +1,8 @@
 #include <mutex>
 #include <cstring>
 
-#include "mcc-libusb/pmd.h"
-#include "mcc-libusb/usb-1024LS.h"
+#include <mcc-libusb/pmd.h>
+#include <mcc-libusb/usb-1024LS.h>
 
 #include "USB_1024LS.hpp"
 
