@@ -28,10 +28,10 @@
 #define HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the `udev' library (-ludev). */
-#define HAVE_LIBUDEV 0
+//#define HAVE_LIBUDEV 0
 
 /* Define to 1 if you have the <libudev.h> header file. */
-#define HAVE_LIBUDEV_H 0
+//#define HAVE_LIBUDEV_H 0
 
 /* Define to 1 if you have the <linux/netlink.h> header file. */
 /* #undef HAVE_LINUX_NETLINK_H */
@@ -142,7 +142,7 @@
 /* #undef USE_SYSTEM_LOGGING_FACILITY */
 
 /* Use udev for device enumeration/hotplug */
-#define USE_UDEV 1
+//#define USE_UDEV 1
 
 /* Use UsbDk Windows backend */
 /* #undef USE_USBDK */

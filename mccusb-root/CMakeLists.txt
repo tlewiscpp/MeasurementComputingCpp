@@ -6,6 +6,7 @@ set (BUILD_SHARED_LIBRARIES FALSE)
 
 set(LIBUSB_SOURCE_ROOT ../libusb-root)
 set(HIDAPI_SOURCE_ROOT ../hidapi-root)
+set(FAKE_LIBUSB_ROOT .)
 set(LIBUSB_SOURCE_DIR ${LIBUSB_SOURCE_ROOT}/libusb/libusb/)
 set(HIDAPI_SOURCE_DIR ${HIDAPI_SOURCE_ROOT}/hidapi/hidapi)
 
@@ -52,9 +53,7 @@ set (${PROJECT_NAME}_SOURCE_FILES
         ${SOURCE_ROOT}/bth-1208LS.c
         ${SOURCE_ROOT}/minilab-1008.c
         ${SOURCE_ROOT}/usb-1808.c
-        ${SOURCE_ROOT}/nist.c
-        #${SOURCE_ROOT}/usb-2001-tc.c
-        )
+        ${SOURCE_ROOT}/nist.c)
 
 set (${PROJECT_NAME}_HEADER_FILES
         ${SOURCE_ROOT}/pmd.h
@@ -93,12 +92,12 @@ set (${PROJECT_NAME}_HEADER_FILES
         ${SOURCE_ROOT}/bth-1208LS.h
         ${SOURCE_ROOT}/minilab-1008.h
         ${SOURCE_ROOT}/usb-1808.h
-        ${SOURCE_ROOT}/usb-500.h
-        #${SOURCE_ROOT}/usb-2001-tc.h
-        )
+        ${SOURCE_ROOT}/usb-500.h)
 
 
-add_library(${PROJECT_NAME} STATIC ${${PROJECT_NAME}_SOURCE_FILES})
+add_library(${PROJECT_NAME} STATIC 
+    ${${PROJECT_NAME}_SOURCE_FILES}
+    ${${PROJECT_NAME}_HEADER_FILES})
 
 
 target_link_libraries(${PROJECT_NAME}
@@ -107,7 +106,7 @@ target_link_libraries(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME}
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
-        PUBLIC ../
+        PUBLIC ${FAKE_LIBUSB_ROOT}/
         PUBLIC ${SOURCE_ROOT}/
         PUBLIC ${LIBUSB_SOURCE_DIR}/
         PUBLIC ${LIBUSB_SOURCE_ROOT}/libusb/

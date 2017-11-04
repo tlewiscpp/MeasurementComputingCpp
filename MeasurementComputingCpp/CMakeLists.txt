@@ -20,7 +20,9 @@ set (${PROJECT_NAME}_HEADER_FILES
         ${SOURCE_ROOT}/USB_1208FS.hpp
         ${SOURCE_ROOT}/USB_1608FS.hpp)
 
-    add_library(${PROJECT_NAME} SHARED ${${PROJECT_NAME}_SOURCE_FILES})
+add_library(${PROJECT_NAME} SHARED 
+    ${${PROJECT_NAME}_SOURCE_FILES}
+    ${${PROJECT_NAME}_HEADER_FILES})
 
 target_link_libraries(${PROJECT_NAME}
         usb-1.0-static
