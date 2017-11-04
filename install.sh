@@ -356,17 +356,16 @@ if [[ ! -f ".init-repo" ]]; then
     source init-repository.sh
 fi
 
-checkLibUdev || { echo "Unable to link libudev, bailing out"; exit 1; }
 changeDirectory "$buildDir" || { echo "Unable to enter build directory \"$buildDir\", bailing out"; exit 1; }
 runCmake "$filePath" || { echo "cmake failed, bailing out"; exit 1; }
 runMake || { echo "make failed, bailing out"; exit 1; }
 suCopyFile "$buildDir/$programName/lib$programName.so" "$globalLibDir"  || { echo "Could not copy file, bailing out"; exit 1; }
-
-suCopyFile "$buildDir/$programName/lib$programName.so" "$globalLibDir"  || { echo "Could not copy file, bailing out"; exit 1; }
-
 suCreateDirectory "$globalIncludeDir/$programName"
-$SUDO cp -R "$filePath/$programName/*.hpp" "$globalIncludeDir/$programName/"
-
+for headerFile in $(ls "$filePath/$programName/" | grep '.h'); do
+    suCopyFile "$filePath/$programName/$headerFile" "$globalIncludeDir/$programName/"
+    echo "headerFile = $headerFile"
+done
+echo "filePath/programName/ = $filePath/$programName/"
 createDirectory "$HOME/Desktop" || { echo "Could not create directory \"$HOME/Desktop\", bailing out"; exit 1; }
 
 installMessage="$programLongName Installed Successfully!"
