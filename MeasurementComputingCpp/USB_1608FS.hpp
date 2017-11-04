@@ -81,7 +81,7 @@ private:
     libusb_device_handle *m_usbDeviceHandle;
     std::map<DigitalPinNumber, PortDirection> m_digitalPortMap;
     mutable std::string m_serialNumber;
-    Calibration_AIN m_analogInputCalibrationTable[4][8];
+    Calibration_AIN_t m_analogInputCalibrationTable[4][8];
     //std::array< std::array<Calibration_AIN, NCHAN_USB1608FS>, NGAINS_USB1608FS > m_analogInputCalibrationTable;
 
     static uint8_t digitalPortDirectionToUInt8(PortDirection direction);
