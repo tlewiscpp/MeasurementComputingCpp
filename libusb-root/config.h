@@ -1,7 +1,7 @@
 #if defined(_MSC_VER)
-#    define "windows-config.h"
+#    include "windows-config.h"
 #elif defined(__ANDROID__)
-#    define "android-config.h"
+#    include "android-config.h"
 #else
-#    define "linux-config.h"
+#    include "linux-config.h"
 #endif //defined(_MSC_VER)
