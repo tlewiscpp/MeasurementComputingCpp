@@ -363,7 +363,6 @@ suCopyFile "$buildDir/$programName/lib$programName.so" "$globalLibDir"  || { ech
 suCreateDirectory "$globalIncludeDir/$programName"
 for headerFile in $(ls "$filePath/$programName/" | grep '.h'); do
     suCopyFile "$filePath/$programName/$headerFile" "$globalIncludeDir/$programName/"
-    echo "headerFile = $headerFile"
 done
 echo "filePath/programName/ = $filePath/$programName/"
 createDirectory "$HOME/Desktop" || { echo "Could not create directory \"$HOME/Desktop\", bailing out"; exit 1; }
