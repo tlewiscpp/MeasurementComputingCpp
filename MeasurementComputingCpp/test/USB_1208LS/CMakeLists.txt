@@ -1,6 +1,6 @@
 PROJECT (${PROJECT_NAME} CXX)
 cmake_minimum_required(VERSION 3.1)
-set (PROJECT_NAME USB_1208FS_Test)
+set (PROJECT_NAME USB_1208LS_Test)
 set (CMAKE_CXX_STANDARD 14)
 
 
