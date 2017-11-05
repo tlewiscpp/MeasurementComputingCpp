@@ -16,10 +16,9 @@ USB_1608FS::USB_1608FS() :
     m_usbDeviceHandle{nullptr},
     m_digitalPortMap{},
     m_serialNumber{""},
-    m_analogInputCalibrationTable{}
+    m_analogInputCalibrationTable{nullptr}
 {
-
-
+    
     int initResult{libusb_init(nullptr)};
     if (initResult != 0) {
         throw std::runtime_error("USB_1608FS::USB_1608FS(): libusb_init failed with return code " + toStdString(initResult));
@@ -28,6 +27,10 @@ USB_1608FS::USB_1608FS() :
     this->m_usbDeviceHandle = usb_device_find_USB_MCC(USB1608FS_PID, nullptr);
     if (!this->m_usbDeviceHandle) {
         throw std::runtime_error("USB_1608FS::USB_1608FS(): USB1608FS device not found");
+    }
+    this->m_analogInputCalibrationTable = new Calibration_AIN[4];
+    for (int i = 0; i < 8; i++) {
+        this->m_analogInputCalibrationTable[i] = new Calibration_AIN;
     }
     usbBuildCalTable_USB1608FS(this->m_usbDeviceHandle, this->m_analogInputCalibrationTable);
 
@@ -131,6 +134,10 @@ bool USB_1608FS::digitalRead(DigitalPinNumber pinNumber)
 
 USB_1608FS::~USB_1608FS()
 {
+    for (int i = 0; i < 8; i++) {
+        delete[] this->m_analogCalibrationTable[i];
+    }
+    delete[] this->m_analogCalibrationTable[i];
     usbAInStop_USB1608FS(this->m_usbDeviceHandle);
     usbReset_USB1608FS(this->m_usbDeviceHandle);
     libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 2);
