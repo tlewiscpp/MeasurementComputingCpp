@@ -4,7 +4,7 @@
 #include <map>
 #include <sstream>
 
-struct Calibration_AIN;
+struct Calibration_AIN_t;
 
 struct libusb_device_handle;
 
@@ -81,7 +81,7 @@ private:
     libusb_device_handle *m_usbDeviceHandle;
     std::map<DigitalPinNumber, PortDirection> m_digitalPortMap;
     mutable std::string m_serialNumber;
-    Calibration_AIN **m_analogInputCalibrationTable;
+    Calibration_AIN_t **m_analogInputCalibrationTable;
 
     static uint8_t digitalPortDirectionToUInt8(PortDirection direction);
     static uint8_t voltageRangeToAnalogGain(VoltageRange voltageRange);

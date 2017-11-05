@@ -28,11 +28,17 @@ USB_1608FS::USB_1608FS() :
     if (!this->m_usbDeviceHandle) {
         throw std::runtime_error("USB_1608FS::USB_1608FS(): USB1608FS device not found");
     }
-    this->m_analogInputCalibrationTable = new Calibration_AIN[4];
+    this->m_analogInputCalibrationTable = new Calibration_AIN*[4];
     for (int i = 0; i < 8; i++) {
-        this->m_analogInputCalibrationTable[i] = new Calibration_AIN;
+        this->m_analogInputCalibrationTable[i] = new Calibration_AIN[8];
     }
-    usbBuildCalTable_USB1608FS(this->m_usbDeviceHandle, this->m_analogInputCalibrationTable);
+    Calibration_AIN_t tempTable[4][8];
+    usbBuildCalTable_USB1608FS(this->m_usbDeviceHandle, tempTable);
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 8; j++) {
+            this->m_analogInputCalibrationTable[i][j] = tempTable[i][j];
+        }
+    }
 
     usbDConfigPort_USB1608FS(this->m_usbDeviceHandle, DIO_DIR_IN);
 
@@ -135,9 +141,9 @@ bool USB_1608FS::digitalRead(DigitalPinNumber pinNumber)
 USB_1608FS::~USB_1608FS()
 {
     for (int i = 0; i < 8; i++) {
-        delete[] this->m_analogCalibrationTable[i];
+        delete[] this->m_analogInputCalibrationTable[i];
     }
-    delete[] this->m_analogCalibrationTable[i];
+    delete[] this->m_analogInputCalibrationTable;
     usbAInStop_USB1608FS(this->m_usbDeviceHandle);
     usbReset_USB1608FS(this->m_usbDeviceHandle);
     libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 2);
@@ -176,7 +182,14 @@ uint8_t USB_1608FS::voltageRangeToAnalogGain(USB_1608FS::VoltageRange voltageRan
 
 short USB_1608FS::analogRead(AnalogPinNumber pinNumber, USB_1608FS::VoltageRange voltageRange)
 {
-    return usbAIn_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), this->voltageRangeToAnalogGain(voltageRange), this->m_analogInputCalibrationTable);
+    //TODO FixMe
+    Calibration_AIN_t tempTable[4][8];
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 8; j++) {
+            tempTable[i][j] = this->m_analogInputCalibrationTable[i][j];
+        }
+    }
+    return usbAIn_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), this->voltageRangeToAnalogGain(voltageRange), tempTable);
 }
 
 float USB_1608FS::voltageRead(AnalogPinNumber pinNumber, USB_1608FS::VoltageRange voltageRange)

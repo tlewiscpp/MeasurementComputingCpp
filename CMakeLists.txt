@@ -16,9 +16,11 @@ set (HIDAPI_ROOT hidapi-root)
 set (LIBUSB_ROOT libusb-root)
 set (MCCUSB_ROOT mccusb-root)
 set (MCCCPP_ROOT MeasurementComputingCpp)
+set (MCCCPP_TEST_ROOT ${MCCCPP_ROOT}/test/)
 
 
 add_subdirectory(${LIBUSB_ROOT})
 add_subdirectory(${HIDAPI_ROOT})
 add_subdirectory(${MCCUSB_ROOT})
 add_subdirectory(${MCCCPP_ROOT})
+add_subdirectory(${MCCCPP_TEST_ROOT})
