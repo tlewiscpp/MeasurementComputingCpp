@@ -61,6 +61,10 @@ USB_1208LS& USB_1208LS::operator=(USB_1208LS &&rhs) noexcept
 
 void USB_1208LS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction)
 {
+    auto currentPortDirection = this->m_digitalPortMap.find(portID)->second;
+    if (currentPortDirection == direction) {
+        return;
+    }
     usbDConfigPort_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), digitalPortDirectionToUInt8(direction));
     if (direction == PortDirection::DigitalOutput) {
         usbDOut_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), 0x00); //0b00000000

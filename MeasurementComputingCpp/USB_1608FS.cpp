@@ -96,6 +96,10 @@ void USB_1608FS::setDigitalPortDirection(PortDirection portDirection)
 
 void USB_1608FS::setDigitalPortDirection(DigitalPinNumber pinNumber, PortDirection direction)
 {
+    auto currentPortDirection = this->m_digitalPortMap.find(pinNumber)->second;
+    if (currentPortDirection == direction) {
+        return;
+    }
     usbDConfigBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), digitalPortDirectionToUInt8(direction));
     if (direction == PortDirection::DigitalOutput) {
         usbDOutBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), 0x00); //0b00000000

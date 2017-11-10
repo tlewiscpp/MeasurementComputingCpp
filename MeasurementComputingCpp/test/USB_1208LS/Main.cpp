@@ -123,12 +123,11 @@ void doDigitalWrite(USB_1208LS::DigitalPortID portNumber, int pinNumber, const s
         std::cout << "ERROR: Digital write command entry too short (expected 1 for HIGH, or 0 for LOW)" << std::endl;
         return;
     }
-    if (str[0] == '1') {
-        mccBoard->setDigitalPortDirection(portNumber, USB_1208LS::PortDirection::DigitalOutput);
+    mccBoard->setDigitalPortDirection(portNumber, USB_1208LS::PortDirection::DigitalOutput);
+    if (str[0] == '1') { 
         mccBoard->digitalWrite(portNumber, pinNumber, true);
         std::cout << "Wrote pin " << pinNumber << " HIGH" << std::endl;
     } else if (str[0] == '0') {
-        mccBoard->setDigitalPortDirection(portNumber, USB_1208LS::PortDirection::DigitalOutput);
         mccBoard->digitalWrite(portNumber, pinNumber, false);
         std::cout << "Wrote pin " << pinNumber << " LOW" << std::endl;
     } else {

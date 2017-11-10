@@ -2,7 +2,7 @@
 #!/bin/bash
 
 ##########################################
-# install-measurementcomputingcpp.sh
+# install.sh
 #
 # Intended to be a placeholder until 
 # I learn how to add a sudo make 
@@ -13,9 +13,6 @@
 baseName="MeasurementComputingCpp"
 programLongName="MeasurementComputingCpp"
 programName="MeasurementComputingCpp"
-iconName="$baseName.png"
-skeletonDesktopFileName=".$baseName.desktop.skel"
-desktopFileName="$baseName.desktop"
 
 absolutePath="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
 fileName="${absolutePath##*/}"
@@ -224,13 +221,6 @@ function bailout() {
     rm -rf "$buildDir"
 }
 
-function generateDesktopFile() {
-    copyFile "$utilityDir/$skeletonDesktopFileName" "$buildDir/$desktopFileName" || { echo "Failed to generate desktop file"; exit 1; }
-    copyFile "$iconPath" "$buildDir/" || { echo "Failed to generate desktop file"; exit 1; }  
-    appendStringToFile "Exec=$buildDir/inspection-app/$programName" "$buildDir/$desktopFileName" || { echo "Failed to generate desktop file"; exit 1; }
-    appendStringToFile "Icon=$buildDir/$iconName" "$buildDir/$desktopFileName" || { echo "Failed to generate desktop file"; exit 1; }
-}
-
 buildDir="build"
 appDir="$HOME/.local/share/applications/"
 
@@ -242,16 +232,6 @@ fi
 
 trap bailout INT QUIT TERM
 
-declare -i incrementPatchVersion
-declare -i incrementMinorVersion
-declare -i incrementMajorVersion
-
-incrementPatchVersion=0
-incrementMinorVersion=0
-incrementMajorVersion=0
-buildAndroid=0
-verboseOutput=0
-
 declare -i loopCounter
 loopCounter=0
 for var in "$@"; do
@@ -259,14 +239,6 @@ for var in "$@"; do
         buildType="Release"
     elif [[ "$var" == "-d" || "$var" == "--d" || "$var" == "-debug" || "$var" == "--debug" ]]; then
         buildType="Debug"
-    elif [[ "$var" == "-p" || "$var" == "--p" || "$var" == "-patch" || "$var" == "--patch" || "$var" == "-increment-patch" || "$var" == "--increment-patch" ]]; then
-        incrementPatchVersion=1
-    elif [[ "$var" == "-i" || "$var" == "--i" || "$var" == "-minor" || "$var" == "--minor" || "$var" == "-increment-minor" || "$var" == "--increment-minor" ]]; then
-        incrementMinorVersion=1
-    elif [[ "$var" == "-m" || "$var" == "--m" || "$var" == "-major" || "$var" == "--major" || "$var" == "-increment-major" || "$var" == "--increment-major" ]]; then
-        incrementMajorVersion=1
-    elif [[ "$var" == "-a" || "$var" == "--a" || "$var" == "-android" || "$var" == "--android" ]]; then
-        buildAndroid=1
     elif [[ "$var" == "-v" || "$var" == "--v" || "$var" == "-verbose" || "$var" == "--verbose" ]]; then
         verboseOutput=1
     fi
@@ -309,7 +281,6 @@ for headerFile in $(ls $filePath/mccusb-root/Linux_Drivers/USB/mcc-libusb/*.h*);
     suCopyFile "$headerFile" "$globalIncludeDir/mcc-libusb/" || { echo "Unable to copy header file to mccusb directory"; exit 1; }
 done
 
-createDirectory "$HOME/Desktop" || { echo "Could not create directory \"$HOME/Desktop\""; exit 1; }
 
 installMessage="$programLongName Installed Successfully!"
 totalLength=${#installMessage} 

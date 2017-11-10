@@ -76,6 +76,7 @@ private:
     static uint8_t voltageRangeToDifferentialGain(VoltageRange voltageRange);
 
     template <typename T> static inline std::string toStdString(const T &t) { return dynamic_cast<std::ostringstream &>(std::ostringstream{} << t).str(); }
+    void doSetDigitalPortDirection(DigitalPortID portID, PortDirection direction);
 
 };
 

@@ -82,6 +82,10 @@ uint8_t USB_1024LS::digitalPortDirectionToUInt8(PortDirection direction)
 
 void USB_1024LS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction)
 {
+    auto currentPortDirection = this->m_digitalPortMap.find(portID)->second;
+    if (currentPortDirection == direction) {
+        return;
+    }
     usbDConfigPort_USB1024LS(this->m_hidDevice, digitalPortIDToUInt8(portID), digitalPortDirectionToUInt8(direction));
     if (direction == PortDirection::DigitalOutput) {
         usbDOut_USB1024LS(this->m_hidDevice, digitalPortIDToUInt8(portID), 0x00); //0b00000000
