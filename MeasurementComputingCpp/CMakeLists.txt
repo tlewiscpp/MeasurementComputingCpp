@@ -2,7 +2,6 @@ cmake_minimum_required (VERSION 3.1)
 set(CMAKE_CXX_STANDARD 14)
 set (PROJECT_NAME MeasurementComputingCpp)
 project (${PROJECT_NAME} CXX)
-set (BUILD_SHARED_LIBRARIES TRUE)
 
 set(MCCUSB_LIBUSB_SOURCE_DIR ../mccusb-root/Linux_Drivers/USB/)
 
@@ -20,7 +19,13 @@ set (${PROJECT_NAME}_HEADER_FILES
         ${SOURCE_ROOT}/USB_1208FS.hpp
         ${SOURCE_ROOT}/USB_1608FS.hpp)
 
-add_library(${PROJECT_NAME} SHARED 
+if (SHARED_LIB_BUILD)
+    set(BUILD_TYPE "SHARED"
+else()
+    set(BUILD_TYPE "STATIC")
+endif()
+
+add_library(${PROJECT_NAME} ${BUILD_TYPE}
     ${${PROJECT_NAME}_SOURCE_FILES}
     ${${PROJECT_NAME}_HEADER_FILES})
 
