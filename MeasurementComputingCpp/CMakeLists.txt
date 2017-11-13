@@ -39,3 +39,4 @@ target_include_directories(${PROJECT_NAME}
         PUBLIC ${SOURCE_ROOT}/
         PUBLIC ${MCCUSB_LIBUSB_SOURCE_DIR}/)
 
+
