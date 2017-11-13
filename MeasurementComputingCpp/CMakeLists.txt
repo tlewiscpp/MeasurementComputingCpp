@@ -20,7 +20,7 @@ set (${PROJECT_NAME}_HEADER_FILES
         ${SOURCE_ROOT}/USB_1608FS.hpp)
 
 if (SHARED_LIB_BUILD)
-    set(BUILD_TYPE "SHARED"
+    set(BUILD_TYPE "SHARED")
 else()
     set(BUILD_TYPE "STATIC")
 endif()
