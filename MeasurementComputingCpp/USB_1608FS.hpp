@@ -3,6 +3,7 @@
 
 #include <map>
 #include <sstream>
+#include "USB_IO_Base.hpp"
 
 struct Calibration_AIN_t;
 
@@ -14,7 +15,7 @@ namespace MeasurementComputingCpp {
 #define MAXIMUM_ANALOG_OUTPUT_VALUE_1608FS 65535
 #define SERIAL_NUMBER_BUFFER_1608FS 255
 
-class USB_1608FS
+class USB_1608FS : public USB_IO_Base
 {
 public:
     enum class DigitalPinNumber {

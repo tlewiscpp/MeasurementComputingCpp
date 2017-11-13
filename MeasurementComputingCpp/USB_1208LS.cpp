@@ -16,6 +16,7 @@ namespace MeasurementComputingCpp {
 #define SERIAL_NUMBER_BUFFER_1208LS 255
 
 USB_1208LS::USB_1208LS() :
+    USB_IO_Base{"USB_1208LS"},
         m_hidDevice{hid_open(MCC_VID, USB1208LS_PID, nullptr)},
     m_digitalPortMap{},
     m_analogInputMode{AnalogInputMode::SingleEnded},
@@ -42,7 +43,8 @@ USB_1208LS::USB_1208LS() :
 
 
 USB_1208LS::USB_1208LS(USB_1208LS &&rhs) noexcept :
-        m_hidDevice{rhs.m_hidDevice},
+    USB_IO_Base{"USB_1208LS"},
+    m_hidDevice{rhs.m_hidDevice},
     m_digitalPortMap{std::move(rhs.m_digitalPortMap)},
     m_analogInputMode{rhs.m_analogInputMode},
     m_serialNumber{std::move(rhs.m_serialNumber)}

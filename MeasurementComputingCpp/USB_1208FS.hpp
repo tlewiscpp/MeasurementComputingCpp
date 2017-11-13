@@ -3,6 +3,7 @@
 
 #include <map>
 #include <sstream>
+#include "USB_IO_Base.hpp"
 
 struct libusb_device_handle;
 
@@ -13,7 +14,7 @@ namespace MeasurementComputingCpp {
 #define NUMBER_OF_ANALOG_OUTPUT_PINS 2
 #define SERIAL_NUMBER_BUFFER_1208FS 255
 
-class USB_1208FS
+class USB_1208FS : public USB_IO_Base
 {
 public:
     enum class DigitalPortID {

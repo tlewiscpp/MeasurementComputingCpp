@@ -13,6 +13,7 @@
 namespace MeasurementComputingCpp {
 
 USB_1208FS::USB_1208FS() :
+    USB_IO_Base{"USB_1208FS"},
     m_usbDeviceHandle{nullptr},
     m_digitalPortMap{},
     m_digitalOutputTracker{},
@@ -46,6 +47,7 @@ USB_1208FS::USB_1208FS() :
 
 
 USB_1208FS::USB_1208FS(USB_1208FS &&rhs) noexcept :
+    USB_IO_Base{"USB_1208FS"},
     m_usbDeviceHandle{rhs.m_usbDeviceHandle},
     m_digitalPortMap{std::move(rhs.m_digitalPortMap)},
     m_digitalOutputTracker{std::move(rhs.m_digitalOutputTracker)},

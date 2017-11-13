@@ -3,12 +3,13 @@
 
 #include <map>
 #include <sstream>
+#include "USB_IO_Base.hpp"
 
 struct hid_device_;
 
 namespace MeasurementComputingCpp {
 
-class USB_1208LS
+class USB_1208LS : public USB_IO_Base
 {
 public:
     enum class DigitalPortID {

@@ -11,6 +11,7 @@
 namespace MeasurementComputingCpp {
 
 USB_1024LS::USB_1024LS() :
+    USB_IO_Base{"USB_1024LS"},
     m_hidDevice{hid_open(MCC_VID, USB1024LS_PID, nullptr)},
     m_digitalPortMap{},
     m_serialNumber{""}
@@ -39,6 +40,7 @@ USB_1024LS::USB_1024LS() :
 }
 
 USB_1024LS::USB_1024LS(USB_1024LS &&rhs) noexcept :
+    USB_IO_Base{"USB_1024LS"},
     m_hidDevice{rhs.m_hidDevice},
     m_digitalPortMap{std::move(rhs.m_digitalPortMap)},
     m_serialNumber{std::move(rhs.m_serialNumber)}

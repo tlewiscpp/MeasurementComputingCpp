@@ -3,6 +3,7 @@
 
 #include <map>
 #include <sstream>
+#include "USB_IO_Base.hpp"
 
 struct hid_device_;
 
@@ -11,7 +12,7 @@ namespace MeasurementComputingCpp {
 #define BITS_PER_PORT_1024LS 8
 #define SERIAL_NUMBER_BUFFER_1024LS 255
 
-class USB_1024LS
+class USB_1024LS : public USB_IO_Base
 {
 public:
     enum class DigitalPortID {

@@ -13,6 +13,7 @@
 namespace MeasurementComputingCpp {
 
 USB_1608FS::USB_1608FS() :
+    USB_IO_Base{"USB_1608FS"},
     m_usbDeviceHandle{nullptr},
     m_digitalPortMap{},
     m_serialNumber{""},
@@ -57,6 +58,7 @@ USB_1608FS::USB_1608FS() :
 
 
 USB_1608FS::USB_1608FS(USB_1608FS &&rhs) noexcept :
+    USB_IO_Base{"USB_1608FS"},
     m_usbDeviceHandle{rhs.m_usbDeviceHandle},
     m_digitalPortMap{std::move(rhs.m_digitalPortMap)},
     m_serialNumber{std::move(rhs.m_serialNumber)},
