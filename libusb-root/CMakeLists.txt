@@ -21,8 +21,7 @@ set (${PROJECT_NAME}_SOURCE_FILES
     ${SOURCE_ROOT}/os/poll_windows.c
     ${SOURCE_ROOT}/os/windows_winusb.c
     ${SOURCE_ROOT}/os/windows_nt_common.c
-    ${SOURCE_ROOT}/os/threads_windows.c
-    )
+    ${SOURCE_ROOT}/os/threads_windows.c)
 
 set (${PROJECT_NAME}_HEADER_FILES
     ${SOURCE_ROOT}/hotplug.h
@@ -35,8 +34,7 @@ set (${PROJECT_NAME}_HEADER_FILES
     ${SOURCE_ROOT}/version_nano.h
     ${SOURCE_ROOT}/libusbi.h
     ${SOURCE_ROOT}/libusb.h
-        config.h
-    )
+        config.h)
 
 elseif(ANDROID)
 
@@ -50,8 +48,7 @@ set (${PROJECT_NAME}_SOURCE_FILES
         ${SOURCE_ROOT}/os/linux_usbfs.c
         ${SOURCE_ROOT}/os/poll_posix.c
         ${SOURCE_ROOT}/os/threads_posix.c
-        ${SOURCE_ROOT}/os/linux_netlink.c
-        )
+        ${SOURCE_ROOT}/os/linux_netlink.c)
 
 set (${PROJECT_NAME}_HEADER_FILES
         ${SOURCE_ROOT}/hotplug.h
@@ -59,8 +56,7 @@ set (${PROJECT_NAME}_HEADER_FILES
         ${SOURCE_ROOT}/version_nano.h
         ${SOURCE_ROOT}/libusbi.h
         ${SOURCE_ROOT}/libusb.h
-        config.h
-        )
+        config.h)
 else()
     set (${PROJECT_NAME}_SOURCE_FILES
             ${SOURCE_ROOT}/core.c
