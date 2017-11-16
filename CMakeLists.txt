@@ -14,6 +14,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if (NOT STATIC_BUILD)
     set(SHARED_LIB_BUILD ON)
+else()
+    unset (SHARED_LIB_BUILD)
 endif()
 
 
