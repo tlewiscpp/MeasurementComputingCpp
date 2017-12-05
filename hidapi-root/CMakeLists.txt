@@ -26,7 +26,7 @@ else()
     target_link_libraries(${PROJECT_NAME} usb-1.0-static)
 endif()
 
-if (MSYS_PLATFORM)
+if (MINGW)
     target_include_directories(${PROJECT_NAME}
         PUBLIC ${SOURCE_ROOT}/
         PUBLIC ${LIBUSB_ROOT}/)

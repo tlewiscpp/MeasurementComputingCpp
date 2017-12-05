@@ -18,3 +18,5 @@ if [[ ! -f ".repo-init" ]]; then
 else
     git submodule update --recursive --remote
 fi
+
+cp -R libusb-root/libusb/libusb/libusb.h mccusb-root/libusb-1.0/

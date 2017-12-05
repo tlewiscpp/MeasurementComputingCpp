@@ -4,6 +4,7 @@
 #include "USB_1208LS.hpp"
 
 #include <cstring>
+#include <cstdlib>
 
 #define CHECK_BIT(value,bit) ((value) & (1 << (bit)))
 

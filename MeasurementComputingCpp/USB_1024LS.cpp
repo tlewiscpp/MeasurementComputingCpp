@@ -1,5 +1,6 @@
 #include <mutex>
 #include <cstring>
+#include <cstdlib>
 
 #include <mcc-libusb/pmd.h>
 #include <mcc-libusb/usb-1024LS.h>

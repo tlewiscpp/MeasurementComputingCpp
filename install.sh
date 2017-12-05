@@ -222,7 +222,7 @@ function bailout() {
 }
 
 buildDir="build"
-appDir="$HOME/.local/share/applications/"
+appDir="$HOME/.ArduinoLinController/share/applications/"
 
 if [[ "$EUID" -eq "0" ]]; then
     SUDO=
