@@ -10,6 +10,7 @@
 *.dll
 *.dylib
 
+.repo-init
 .vscode/
 .idea/
 cmake-build-debug/
