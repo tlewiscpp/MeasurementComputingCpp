@@ -1,3 +1,4 @@
+#if defined(_WIN32)
 /* sys/ioctl.h
 
 This file is part of Cygwin.
@@ -65,3 +66,7 @@ int __cdecl ioctl (int __fd, int __cmd, ...);
 
 __END_DECLS
 #endif
+
+#else
+#    include "/usr/include/sys/ioctl.h"
+#endif //defined(_WIN32)

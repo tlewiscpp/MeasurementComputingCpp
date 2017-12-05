@@ -1,3 +1,4 @@
+#if defined(_WIN32)
 /* sys/termios.h
 
 This file is part of Cygwin.
@@ -371,3 +372,7 @@ struct winsize
 #define TIOCSPGRP  (('T' << 8) | 0x10)
 
 #endif	/* _SYS_TERMIOS_H */
+
+#else
+#    include "/usr/include/sys/termios.h"
+#endif //defined(_WIN32)

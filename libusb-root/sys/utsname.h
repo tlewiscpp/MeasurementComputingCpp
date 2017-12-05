@@ -1,3 +1,4 @@
+#if defined(_WIN32)
 /* sys/utsname.h
 
 This file is part of Cygwin.
@@ -29,3 +30,8 @@ int uname (struct utsname *);
 #endif
 
 #endif
+
+#else
+#    include "/usr/include/sys/utsname.h"
+#endif //defined(_WIN32)
+
