@@ -67,7 +67,8 @@ if (WIN32)
     target_include_directories(${PROJECT_NAME}
             PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
             PUBLIC ${SOURCE_ROOT}/
-            PUBLIC ${SOURCE_ROOT}/os/)
+            PUBLIC ${SOURCE_ROOT}/os/
+            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../win32-fake/)
 else()
     target_include_directories(${PROJECT_NAME}
             PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
