@@ -22,14 +22,17 @@ function cleanUp() {
 
 
 function runCmake() {
+    if [[ -z "$cmakeInstallLocation" ]]; then
+        cmakeInstallLocation="-DCMAKE_INSTALL_PREFIX=/usr/"
+    fi
     echo "Running cmake (BuildType = $buildType) from source directory \"$1\""
     if [[ "$verboseOutput" == "1" ]]; then
         verboseOutputArgs="-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"
     else
         verboseOutputArgs=""
     fi
-    echo -n "Running command: \"cmake $linkType $verboseOutputArgs -DCMAKE_BUILD_TYPE=$buildType \"$1\"..."
-    cmake $linkType $verboseOutputArgs -DCMAKE_BUILD_TYPE=$buildType "$1"
+    echo -n "Running command: \"cmake $linkType $cmakeInstallLocation $cmakeVariables $verboseOutputArgs -DCMAKE_BUILD_TYPE=$buildType \"$1\"..."
+    cmake $linkType $cmakeVariables $cmakeInstallLocation $verboseOutputArgs -DCMAKE_BUILD_TYPE=$buildType "$1"
 }
 
 function bailout() {
@@ -60,6 +63,10 @@ for var in "$@"; do
         linkType=""
     elif [[ "$var" == "-v" || "$var" == "--v" || "$var" == "-verbose" || "$var" == "--verbose" ]]; then
         verboseOutput=1
+    elif [[ "$var" == -DCMAKE_INSTALL_PREFIX* ]]; then
+        cmakeInstallLocation="$var"
+    elif [[ "$var" == -D* ]]; then
+        cmakeVariables="$cmakeVariables $var"
     fi
     loopCounter=$((loopCounter+1))
 done
