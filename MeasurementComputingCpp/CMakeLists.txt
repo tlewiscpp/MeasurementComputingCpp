@@ -30,13 +30,22 @@ add_library(${PROJECT_NAME} ${BUILD_TYPE}
     ${${PROJECT_NAME}_HEADER_FILES})
 
 target_link_libraries(${PROJECT_NAME}
-        usb-1.0-static
-        hidapi-libusb-static
-        mccusb-libusb-static)
+        usb-1.0
+        hidapi-libusb
+        mccusb)
 
 target_include_directories(${PROJECT_NAME}
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
         PUBLIC ${SOURCE_ROOT}/
         PUBLIC ${MCCUSB_LIBUSB_SOURCE_DIR}/)
 
+if(${CMAKE_SYSTEM_NAME} MATCHES Linux|.*BSD|DragonFly)
 
+    set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${${PROJECT_NAME}_HEADER_FILES}")
+
+    install(TARGETS ${PROJECT_NAME}
+            ARCHIVE DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/"
+            LIBRARY DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/"
+            PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}/")
+
+endif()

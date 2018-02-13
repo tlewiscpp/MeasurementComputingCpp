@@ -1,14 +1,8 @@
 cmake_minimum_required (VERSION 3.1)
 set(CMAKE_CXX_STANDARD 14)
-set (PROJECT_NAME mccusb-libusb-static)
+set (PROJECT_NAME mccusb)
 project (${PROJECT_NAME})
 set (BUILD_SHARED_LIBRARIES FALSE)
-
-set(LIBUSB_SOURCE_ROOT ../libusb-root)
-set(HIDAPI_SOURCE_ROOT ../hidapi-root)
-set(FAKE_LIBUSB_ROOT .)
-set(LIBUSB_SOURCE_DIR ${LIBUSB_SOURCE_ROOT}/libusb/libusb/)
-set(HIDAPI_SOURCE_DIR ${HIDAPI_SOURCE_ROOT}/hidapi/hidapi)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
@@ -101,16 +95,29 @@ add_library(${PROJECT_NAME} STATIC
 
 
 target_link_libraries(${PROJECT_NAME}
-        usb-1.0-static
-        hidapi-libusb-static)
+        usb-1.0
+        hidapi-libusb)
 
 target_include_directories(${PROJECT_NAME}
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
-        PUBLIC ${FAKE_LIBUSB_ROOT}/
-        PUBLIC ${SOURCE_ROOT}/
-        PUBLIC ${LIBUSB_SOURCE_DIR}/
-        PUBLIC ${LIBUSB_SOURCE_ROOT}/libusb/
-        PUBLIC ${HIDAPI_SOURCE_DIR}/
-        PUBLIC ${HIDAPI_SOURCE_ROOT}/hidapi)
+        PUBLIC ${SOURCE_ROOT}/)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES Linux|.*BSD|DragonFly)
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${${PROJECT_NAME}_HEADER_FILES}")
+
+    install(TARGETS ${PROJECT_NAME}
+            ARCHIVE DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/"
+            LIBRARY DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/"
+            PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}/")
+
+
+    set (UDEV_FILE_LOCATION ${SOURCE_ROOT}/mccusb-root/)
+
+    install(FILES "${UDEV_FILE_LOCATION}/61-mcc.rules" DESTINATION "/etc/udev/rules.d")
+
+
+endif()
+
 
 

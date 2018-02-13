@@ -1,9 +1,3 @@
-[submodule "libusb-root/libusb"]
-	path = libusb-root/libusb
-	url = https://github.com/libusb/libusb
-[submodule "hidapi-root/hidapi"]
-	path = hidapi-root/hidapi
-	url = https://github.com/signal11/hidapi
 [submodule "mccusb-root/Linux_Drivers"]
 	path = mccusb-root/Linux_Drivers
 	url = https://github.com/wjasper/Linux_Drivers
