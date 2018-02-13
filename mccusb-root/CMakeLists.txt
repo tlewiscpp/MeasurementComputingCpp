@@ -112,7 +112,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES Linux|.*BSD|DragonFly)
             PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}/")
 
 
-    set (UDEV_FILE_LOCATION ${SOURCE_ROOT}/mccusb-root/)
+    set (UDEV_FILE_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/Linux_Drivers/")
 
     install(FILES "${UDEV_FILE_LOCATION}/61-mcc.rules" DESTINATION "/etc/udev/rules.d")
 
