@@ -14,6 +14,7 @@ set (${PROJECT_NAME}_SOURCE_FILES
         ${SOURCE_ROOT}/USB_1608FS.cpp)
 
 set (${PROJECT_NAME}_HEADER_FILES
+        ${SOURCE_ROOT}/USB_IO_Base.hpp
         ${SOURCE_ROOT}/USB_1024LS.hpp
         ${SOURCE_ROOT}/USB_1208LS.hpp
         ${SOURCE_ROOT}/USB_1208FS.hpp
