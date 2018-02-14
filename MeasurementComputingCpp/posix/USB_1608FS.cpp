@@ -15,9 +15,9 @@ namespace MeasurementComputingCpp {
 USB_1608FS::USB_1608FS() :
     USB_IO_Base{"USB_1608FS"},
     m_usbDeviceHandle{nullptr},
+    m_analogInputCalibrationTable{nullptr},
     m_digitalPortMap{},
     m_serialNumber{""},
-    m_analogInputCalibrationTable{nullptr}
 {
     
     int initResult{libusb_init(nullptr)};

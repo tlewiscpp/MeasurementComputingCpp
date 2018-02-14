@@ -5,7 +5,9 @@
 #include <sstream>
 #include "USB_IO_Base.hpp"
 
+#if !defined(_WIN32)
 struct hid_device_;
+#endif //!defined(_WIN32)
 
 namespace MeasurementComputingCpp {
 
@@ -67,7 +69,9 @@ public:
     static float analogToVoltage(short analogReading, AnalogInputMode inputMode = AnalogInputMode::SingleEnded, VoltageRange voltageRange = VoltageRange::V_10);
 
 private:
+#if !defined(_WIN32)
     hid_device_ *m_hidDevice;
+#endif //!defined(_WIN32)
     std::map<DigitalPortID, PortDirection> m_digitalPortMap;
     AnalogInputMode m_analogInputMode;
     mutable std::string m_serialNumber;

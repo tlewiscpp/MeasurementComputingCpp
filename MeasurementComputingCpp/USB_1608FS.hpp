@@ -5,9 +5,10 @@
 #include <sstream>
 #include "USB_IO_Base.hpp"
 
+#if !defined(_WIN32)
 struct Calibration_AIN_t;
-
 struct libusb_device_handle;
+#endif //!defined(_WIN32)
 
 namespace MeasurementComputingCpp {
 
@@ -79,10 +80,12 @@ public:
     static float analogToVoltage(short analogReading, VoltageRange voltageRange = VoltageRange::V_10);
 
 private:
-    libusb_device_handle *m_usbDeviceHandle;
-    std::map<DigitalPinNumber, PortDirection> m_digitalPortMap;
-    mutable std::string m_serialNumber;
-    Calibration_AIN_t **m_analogInputCalibrationTable;
+#if !defined(_WIN32)
+        Calibration_AIN_t **m_analogInputCalibrationTable;
+        libusb_device_handle *m_usbDeviceHandle;
+#endif //!defined(_WIN32)
+        std::map<DigitalPinNumber, PortDirection> m_digitalPortMap;
+        mutable std::string m_serialNumber;
 
     static uint8_t digitalPortDirectionToUInt8(PortDirection direction);
     static uint8_t voltageRangeToAnalogGain(VoltageRange voltageRange);
