@@ -1,9 +1,8 @@
 #include <cstring>
 
-#include <mcc-libusb/pmd.h>
-#include <mcc-libusb/usb-1208FS.h>
-
 #include "USB_1208FS.hpp"
+
+#include "common/cbw.h"
 
 #define CHECK_BIT(value,bit) ((value) & (1 << (bit)))
 #define SET_BIT(value,bit) ((value) |= (1 << (bit)))
@@ -12,29 +11,22 @@
 
 namespace MeasurementComputingCpp {
 
-USB_1208FS::USB_1208FS() :
+USB_1208FS::USB_1208FS(unsigned int boardNumber) :
     USB_IO_Base{"USB_1208FS"},
-    m_usbDeviceHandle{nullptr},
+    m_boardNumber{boardNumber},
     m_digitalPortMap{},
     m_digitalOutputTracker{},
     m_analogInputMode{AnalogInputMode::SingleEnded},
     m_serialNumber{""}
 {
 
+	auto boardName = this->getBoardName(boardNumber);
+	if (boardName != this->name()) {
+		throw std::runtime_error("USB_1208FS::USB_1208FS(): board number " + toStdString(boardNumber) + " is of type " + boardName + ", not " + this->name());
+	}
 
-    int initResult{libusb_init(nullptr)};
-    if (initResult != 0) {
-        throw std::runtime_error("USB_1208FS::USB_1208FS(): libusb_init failed with return code " + toStdString(initResult));
-    }
-
-    this->m_usbDeviceHandle = usb_device_find_USB_MCC(USB1208FS_PID, nullptr);
-    if (!this->m_usbDeviceHandle) {
-        throw std::runtime_error("USB_1208FS::USB_1208FS(): USB1208FS device not found");
-    }
-    init_USB1208FS(this->m_usbDeviceHandle);
-
-    usbDConfigPort_USB1208FS(this->m_usbDeviceHandle, DIO_PORTA, DIO_DIR_IN);
-    usbDConfigPort_USB1208FS(this->m_usbDeviceHandle, DIO_PORTB, DIO_DIR_IN);
+	cbDConfigPort(this->m_boardNumber, this->digitalPortIDToUInt8(DigitalPortID::PortA), this->digitalPortDirectionToUInt8(PortDirection::DigitalInput));
+	cbDConfigPort(this->m_boardNumber, this->digitalPortIDToUInt8(DigitalPortID::PortB), this->digitalPortDirectionToUInt8(PortDirection::DigitalInput));
 
     this->m_digitalPortMap.emplace(USB_1208FS::DigitalPortID::PortA, USB_1208FS::PortDirection::DigitalInput);
     this->m_digitalPortMap.emplace(USB_1208FS::DigitalPortID::PortB, USB_1208FS::PortDirection::DigitalInput);
@@ -48,7 +40,7 @@ USB_1208FS::USB_1208FS() :
 
 USB_1208FS::USB_1208FS(USB_1208FS &&rhs) noexcept :
     USB_IO_Base{"USB_1208FS"},
-    m_usbDeviceHandle{rhs.m_usbDeviceHandle},
+    m_boardNumber{rhs.m_boardNumber},
     m_digitalPortMap{std::move(rhs.m_digitalPortMap)},
     m_digitalOutputTracker{std::move(rhs.m_digitalOutputTracker)},
     m_analogInputMode{rhs.m_analogInputMode},
@@ -59,7 +51,7 @@ USB_1208FS::USB_1208FS(USB_1208FS &&rhs) noexcept :
 
 USB_1208FS& USB_1208FS::operator=(USB_1208FS &&rhs) noexcept
 {
-    this->m_usbDeviceHandle = rhs.m_usbDeviceHandle;
+    this->m_boardNumber = rhs.m_boardNumber;
     this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
     this->m_digitalOutputTracker = std::move(rhs.m_digitalOutputTracker);
     this->m_analogInputMode = rhs.m_analogInputMode;

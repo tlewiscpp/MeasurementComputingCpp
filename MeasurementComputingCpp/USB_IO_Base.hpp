@@ -15,10 +15,15 @@ public:
 #if defined(_WIN32)
     static std::string getBoardName(unsigned int boardNumber);
         static std::string getErrorString(unsigned int errorNumber);
+		std::string getSerialNumber(unsigned int boardNumber) const;
 #endif //defined(_WIN32)
 
 private:
     std::string m_name;
+
+#if defined(_WIN32)
+	mutable std::string m_serialNumber;
+#endif //defined(_WIN32)
 };
 
 } //namespace MeasurementComputingCpp

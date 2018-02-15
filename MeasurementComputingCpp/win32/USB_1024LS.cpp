@@ -2,7 +2,7 @@
 #include <cstring>
 #include <cstdlib>
 
-#include <common/cbw.h>
+#include "common/cbw.h"
 
 #include "USB_1024LS.hpp"
 
@@ -18,14 +18,14 @@ USB_1024LS::USB_1024LS(unsigned int boardNumber) :
 {
 
     auto boardName =this->getBoardName(boardNumber);
-    if (boardName != "USB_1024LS") {
-        throw std::runtime_error("USB_1024LS::USB_1024LS(): board number " + toStdString(boardNumber) + " is of type " + boardName + ", not USB_1024LS");
+    if (boardName != this->name()) {
+        throw std::runtime_error("USB_1024LS::USB_1024LS(): board number " + toStdString(boardNumber) + " is of type " + boardName + ", not " + this->name());
     }
-    cbConfig
-    //usbDConfigPort_USB1024LS(this->m_hidDevice, DIO_PORTA, DIO_DIR_IN);
-    //usbDConfigPort_USB1024LS(this->m_hidDevice, DIO_PORTB, DIO_DIR_IN);
-    //usbDConfigPort_USB1024LS(this->m_hidDevice, DIO_PORTC_LOW, DIO_DIR_IN);
-    //usbDConfigPort_USB1024LS(this->m_hidDevice, DIO_PORTC_HI, DIO_DIR_IN);
+
+    cbDConfigPort (this->m_boardNumber, this->digitalPortIDToUInt8(DigitalPortID::PortA), this->digitalPortDirectionToUInt8(PortDirection::DigitalInput));
+    cbDConfigPort (this->m_boardNumber, this->digitalPortIDToUInt8(DigitalPortID::PortB), this->digitalPortDirectionToUInt8(PortDirection::DigitalInput));
+    cbDConfigPort (this->m_boardNumber, this->digitalPortIDToUInt8(DigitalPortID::PortCLow), this->digitalPortDirectionToUInt8(PortDirection::DigitalInput));
+    cbDConfigPort (this->m_boardNumber, this->digitalPortIDToUInt8(DigitalPortID::PortCHigh), this->digitalPortDirectionToUInt8(PortDirection::DigitalInput));
 
     this->m_digitalPortMap.emplace(USB_1024LS::DigitalPortID::PortA, USB_1024LS::PortDirection::DigitalInput);
     this->m_digitalPortMap.emplace(USB_1024LS::DigitalPortID::PortB, USB_1024LS::PortDirection::DigitalInput);
@@ -38,7 +38,7 @@ USB_1024LS::USB_1024LS(unsigned int boardNumber) :
 
 USB_1024LS::USB_1024LS(USB_1024LS &&rhs) noexcept :
     USB_IO_Base{"USB_1024LS"},
-    m_hidDevice{rhs.m_hidDevice},
+    m_boardNumber{rhs.m_boardNumber},
     m_digitalPortMap{std::move(rhs.m_digitalPortMap)},
     m_serialNumber{std::move(rhs.m_serialNumber)}
 {
@@ -47,7 +47,7 @@ USB_1024LS::USB_1024LS(USB_1024LS &&rhs) noexcept :
 
 USB_1024LS& USB_1024LS::operator=(USB_1024LS &&rhs) noexcept
 {
-    this->m_hidDevice = rhs.m_hidDevice;
+    this->m_boardNumber = rhs.m_boardNumber;
     this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
     this->m_serialNumber = std::move(rhs.m_serialNumber);
     return *this;
@@ -56,13 +56,13 @@ USB_1024LS& USB_1024LS::operator=(USB_1024LS &&rhs) noexcept
 uint8_t USB_1024LS::digitalPortIDToUInt8(DigitalPortID portID)
 {
     if (portID == USB_1024LS::DigitalPortID::PortA) {
-        return DIO_PORTA;
+        return FIRSTPORTA;
     } else if (portID == USB_1024LS::DigitalPortID::PortB) {
-        return DIO_PORTB;
+        return FIRSTPORTB;
     } else if (portID == USB_1024LS::DigitalPortID::PortCLow) {
-        return DIO_PORTC_LOW;
+        return FIRSTPORTCL;
     } else if (portID == USB_1024LS::DigitalPortID::PortCHigh) {
-        return DIO_PORTC_HI;
+		return FIRSTPORTCH;
     } else {
         throw std::runtime_error("USB_1024LS::digitalPortIDToUInt8(DigitalPortID): Invalid DigitalPortID");
     }
@@ -71,9 +71,9 @@ uint8_t USB_1024LS::digitalPortIDToUInt8(DigitalPortID portID)
 uint8_t USB_1024LS::digitalPortDirectionToUInt8(PortDirection direction)
 {
     if (direction == USB_1024LS::PortDirection::DigitalInput) {
-        return DIO_DIR_IN;
+        return SIGNAL_IN;
     } else if (direction == USB_1024LS::PortDirection::DigitalOutput) {
-        return DIO_DIR_OUT;
+        return SIGNAL_OUT;
     } else {
         throw std::runtime_error("USB_1024LS::digitalPortDirectionToUInt8(PortDirection): Invalid PortDirection");
     }
@@ -85,9 +85,15 @@ void USB_1024LS::setDigitalPortDirection(DigitalPortID portID, PortDirection dir
     if (currentPortDirection == direction) {
         return;
     }
-    usbDConfigPort_USB1024LS(this->m_hidDevice, digitalPortIDToUInt8(portID), digitalPortDirectionToUInt8(direction));
+    auto result = cbDConfigPort(this->m_boardNumber, digitalPortIDToUInt8(portID), digitalPortDirectionToUInt8(direction));
+	if (result != NOERRORS) {
+		throw std::runtime_error("USB_1024LS::setDigitalPortDirection(DigitalPortID, PortDirection): cbDConfigPort returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+	}
     if (direction == PortDirection::DigitalOutput) {
-        usbDOut_USB1024LS(this->m_hidDevice, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+        result  = cbDOut(this->m_boardNumber, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+		if (result != NOERRORS) {
+			throw std::runtime_error("USB_1024LS::setDigitalPortDirection(DigitalPortID, PortDirection): cbDOut returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+		}
     }
     this->m_digitalPortMap.find(portID)->second = direction;
 }
@@ -114,7 +120,10 @@ bool USB_1024LS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool stat
     if (this->m_digitalPortMap.find(portID)->second != USB_1024LS::PortDirection::DigitalOutput) {
         return false;
     }
-    usbDBitOut_USB1024LS(this->m_hidDevice, digitalPortIDToUInt8(portID), pinNumber, static_cast<uint8_t>(state));
+    auto result = cbDBitOut(this->m_boardNumber, digitalPortIDToUInt8(portID), pinNumber, static_cast<uint8_t>(state));
+	if (result != NOERRORS) {
+		throw std::runtime_error("USB_1024LS::digitalWrite(DigitalPortID, uint8_t, bool): cbDBitOut returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+	}
     return true;
 }
 
@@ -135,40 +144,35 @@ bool USB_1024LS::digitalRead(DigitalPortID portID, uint8_t pinNumber)
     if (this->m_digitalPortMap.find(portID)->second != USB_1024LS::PortDirection::DigitalInput) {
         return false;
     }
-    uint8_t allValues{0};
-    usbDIn_USB1024LS(this->m_hidDevice, this->digitalPortIDToUInt8(portID), &allValues);
+    uint16_t allValues{0};
+    auto result = cbDIn(this->m_boardNumber, this->digitalPortIDToUInt8(portID), &allValues);
     return static_cast<bool>(CHECK_BIT(allValues, pinNumber));
 }
 
 std::string USB_1024LS::serialNumber() const
 {
-    if (!this->m_serialNumber.empty()) {
-        return this->m_serialNumber;
-    }
-    wchar_t tempWideSerialNumber[SERIAL_NUMBER_BUFFER_1024LS];
-    wmemset(tempWideSerialNumber, '\0', SERIAL_NUMBER_BUFFER_1024LS);
-    hid_get_serial_number_string(this->m_hidDevice, tempWideSerialNumber, SERIAL_NUMBER_BUFFER_1024LS);
-
-    char tempSerialNumber[SERIAL_NUMBER_BUFFER_1024LS];
-    memset(tempSerialNumber, '\0', SERIAL_NUMBER_BUFFER_1024LS);
-    wcstombs(tempSerialNumber, tempWideSerialNumber, SERIAL_NUMBER_BUFFER_1024LS);
-    this->m_serialNumber = std::string{tempSerialNumber};
-    return this->m_serialNumber;
+	return USB_IO_Base::getSerialNumber(this->m_boardNumber);
 }
 
 void USB_1024LS::resetDevice() {
-    usbReset_USB1024LS(this->m_hidDevice);
+	//Nothing to do here
 }
 
 void USB_1024LS::resetCounter() {
-    usbInitCounter_USB1024LS(this->m_hidDevice);
+    auto result = cbCClear (this->m_boardNumber, COUNT1);
+	if (result != NOERRORS) {
+		throw std::runtime_error("USB_1024LS::resetCounter(): cbCClear returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+	}
 }
 
 uint32_t USB_1024LS::readCounter() {
-    return usbReadCounter_USB1024LS(this->m_hidDevice);
+	ULONG returnValue{ 0 };
+	auto result = cbCIn32(this->m_boardNumber, COUNT1, &returnValue);
+	if (result != NOERRORS) {
+		throw std::runtime_error("USB_1024LS::readCounter(): cbCIn32 returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+	}
+	return static_cast<uint32_t>(returnValue);
 }
-
-    std::string getBoardName(unsigned int boardNumber);
 
 USB_1024LS::~USB_1024LS()
 {
