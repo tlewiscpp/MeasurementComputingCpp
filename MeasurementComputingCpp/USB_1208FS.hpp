@@ -43,8 +43,11 @@ public:
         V_1
     };
 
-
-    USB_1208FS();
+#if defined(_WIN32)
+    USB_1208FS(unsigned int m_boardNumber);
+#else
+	USB_1208FS()
+#endif //defined(_WIN32)
     USB_1208FS(const USB_1208FS &rhs) = delete;
     USB_1208FS(USB_1208FS &&rhs) noexcept;
     ~USB_1208FS() override;
@@ -72,7 +75,11 @@ public:
     static float analogToVoltage(short analogReading, AnalogInputMode inputMode = AnalogInputMode::SingleEnded, VoltageRange voltageRange = VoltageRange::V_10);
 
 private:
+#if defined(_WIN32)
+	unsigned int m_boardNumber;
+#else
     libusb_device_handle *m_usbDeviceHandle;
+#endif //defined(_WIN32)
     std::map<DigitalPortID, PortDirection> m_digitalPortMap;
     std::map<DigitalPortID, uint8_t> m_digitalOutputTracker;
     AnalogInputMode m_analogInputMode;

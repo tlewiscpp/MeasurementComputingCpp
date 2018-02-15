@@ -54,7 +54,11 @@ public:
         V_0_3125
     };
 
+#if defined(_WIN32)
+	USB_1608FS(unsigned int boardNumber);
+#else
     USB_1608FS();
+#endif //defined(_WIN32)
     USB_1608FS(const USB_1608FS &rhs) = delete;
     USB_1608FS(USB_1608FS &&rhs) noexcept;
     ~USB_1608FS() override;
@@ -80,7 +84,9 @@ public:
     static float analogToVoltage(short analogReading, VoltageRange voltageRange = VoltageRange::V_10);
 
 private:
-#if !defined(_WIN32)
+#if defined(_WIN32)
+	unsigned int m_boardNumber;
+#else
         libusb_device_handle *m_usbDeviceHandle;
         Calibration_AIN_t **m_analogInputCalibrationTable;
 #endif //!defined(_WIN32)

@@ -29,7 +29,11 @@ public:
         DigitalOutput
     };
     
-    USB_1024LS();
+#if defined(_WIN32)
+    USB_1024LS(unsigned int boardNumber);
+#else
+	USB_1024LS();
+#endif //defined(_WIN32)
     USB_1024LS(const USB_1024LS &rhs) = delete;
     USB_1024LS(USB_1024LS &&rhs) noexcept;
     ~USB_1024LS() override;
@@ -49,8 +53,10 @@ public:
     std::string serialNumber() const;
 
 private:
-#if !defined(_WIN32)
-        hid_device_ *m_hidDevice;
+#if defined(_WIN32)
+	unsigned int m_boardNumber;
+#else
+    hid_device_ *m_hidDevice;
 #endif //!defined(_WIN32)
     std::map<DigitalPortID, PortDirection> m_digitalPortMap;
     mutable std::string m_serialNumber;

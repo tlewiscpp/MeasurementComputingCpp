@@ -16,6 +16,7 @@ endif()
 set (SOURCE_ROOT .)
 
 set (${PROJECT_NAME}_SOURCE_FILES
+        ${IMPL_DIR}/USB_IO_Base.cpp
         ${IMPL_DIR}/USB_1024LS.cpp
         ${IMPL_DIR}/USB_1208LS.cpp
         ${IMPL_DIR}/USB_1208FS.cpp
@@ -31,7 +32,7 @@ set (${PROJECT_NAME}_HEADER_FILES
 if (SHARED_LIB_BUILD)
     set(BUILD_TYPE "SHARED")
 else()
-    set(BUILD_TYPE "STATIC")
+    set(BUILD_TYPE "STATIC" win32/USB_IO_Base.cpp posix/USB_IO_Base.cpp)
 endif()
 
 add_library(${PROJECT_NAME} ${BUILD_TYPE}
