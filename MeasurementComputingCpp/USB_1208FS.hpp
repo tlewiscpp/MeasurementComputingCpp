@@ -46,7 +46,7 @@ public:
 #if defined(_WIN32)
     explicit USB_1208FS(unsigned int m_boardNumber);
 #else
-	USB_1208FS()
+	USB_1208FS();
 #endif //defined(_WIN32)
     USB_1208FS(const USB_1208FS &rhs) = delete;
     USB_1208FS(USB_1208FS &&rhs) noexcept;
