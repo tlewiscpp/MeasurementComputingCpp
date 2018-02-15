@@ -22,6 +22,7 @@ else()
     set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpedantic -Werror")
     set(CMAKE_CXX_FLAGS_DEBUG "-g")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
 if (NOT STATIC_BUILD)

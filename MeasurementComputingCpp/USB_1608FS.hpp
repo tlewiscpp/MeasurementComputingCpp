@@ -57,7 +57,7 @@ public:
     USB_1608FS();
     USB_1608FS(const USB_1608FS &rhs) = delete;
     USB_1608FS(USB_1608FS &&rhs) noexcept;
-    ~USB_1608FS();
+    ~USB_1608FS() override;
 
     USB_1608FS &operator=(const USB_1608FS &rhs) = delete;
     USB_1608FS &operator=(USB_1608FS &&rhs) noexcept;
@@ -81,8 +81,8 @@ public:
 
 private:
 #if !defined(_WIN32)
-        Calibration_AIN_t **m_analogInputCalibrationTable;
         libusb_device_handle *m_usbDeviceHandle;
+        Calibration_AIN_t **m_analogInputCalibrationTable;
 #endif //!defined(_WIN32)
         std::map<DigitalPinNumber, PortDirection> m_digitalPortMap;
         mutable std::string m_serialNumber;

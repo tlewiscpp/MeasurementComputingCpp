@@ -8,6 +8,7 @@ class USB_IO_Base
 public:
     explicit inline USB_IO_Base(const std::string &name) :
         m_name{name} {}
+    virtual ~USB_IO_Base() = default;
     inline std::string name() const { return this->m_name; }
 
 private:

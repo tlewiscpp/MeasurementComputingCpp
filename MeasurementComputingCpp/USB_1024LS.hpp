@@ -32,7 +32,7 @@ public:
     USB_1024LS();
     USB_1024LS(const USB_1024LS &rhs) = delete;
     USB_1024LS(USB_1024LS &&rhs) noexcept;
-    ~USB_1024LS();
+    ~USB_1024LS() override;
 
     USB_1024LS &operator=(const USB_1024LS &rhs) = delete;
     USB_1024LS &operator=(USB_1024LS &&rhs) noexcept;

@@ -8,8 +8,8 @@ if (WIN32)
     set(WINDOWS_COMMON win32/common/)
 else()
     set(IMPL_DIR posix)
-    set(MCCUSB_LIBUSB_SOURCE_DIR posix/mccusb-root/Linux_Drivers/USB/)
-    add_subdirectory(${IMPL_DIR}/mccusb-root/)
+    set(MCCUSB_LIBUSB_SOURCE_DIR ${IMPL_DIR}/mccusb-root/Linux_Drivers/USB/)
+    add_subdirectory(${IMPL_DIR}/mccusb-root)
 endif()
 
 

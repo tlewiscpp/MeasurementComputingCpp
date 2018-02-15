@@ -44,7 +44,7 @@ public:
     USB_1208LS();
     USB_1208LS(const USB_1208LS &rhs) = delete;
     USB_1208LS(USB_1208LS &&rhs) noexcept;
-    ~USB_1208LS();
+    ~USB_1208LS() override;
 
     USB_1208LS &operator=(const USB_1208LS &rhs) = delete;
     USB_1208LS &operator=(USB_1208LS &&rhs) noexcept;

@@ -17,9 +17,9 @@ USB_1608FS::USB_1608FS() :
     m_usbDeviceHandle{nullptr},
     m_analogInputCalibrationTable{nullptr},
     m_digitalPortMap{},
-    m_serialNumber{""},
+    m_serialNumber{""}
 {
-    
+
     int initResult{libusb_init(nullptr)};
     if (initResult != 0) {
         throw std::runtime_error("USB_1608FS::USB_1608FS(): libusb_init failed with return code " + toStdString(initResult));
@@ -60,9 +60,9 @@ USB_1608FS::USB_1608FS() :
 USB_1608FS::USB_1608FS(USB_1608FS &&rhs) noexcept :
     USB_IO_Base{"USB_1608FS"},
     m_usbDeviceHandle{rhs.m_usbDeviceHandle},
+    m_analogInputCalibrationTable{},
     m_digitalPortMap{std::move(rhs.m_digitalPortMap)},
-    m_serialNumber{std::move(rhs.m_serialNumber)},
-    m_analogInputCalibrationTable{}
+    m_serialNumber{std::move(rhs.m_serialNumber)}
 {
     for (uint8_t i = 0; i < NGAINS_USB1608FS; i++) {
         for (uint8_t j = 0; j < NCHAN_USB1608FS; j++) {
