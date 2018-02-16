@@ -22,23 +22,20 @@ std::string USB_IO_Base::getBoardName(unsigned int boardNumber) {
 	memset(nameBuffer, '\0', NAME_BUFFER_MAX);
 	auto result = cbGetBoardName(static_cast<int>(boardNumber), nameBuffer);
 	if (result < 0) {
-		throw std::runtime_error("USB_IO_Base::getBoardName(): cbGetBoardName returned " + toStdString(result) + " (" + this->getErrorString(result) + ")");
+		throw std::runtime_error("USB_IO_Base::getBoardName(): cbGetBoardName returned " + toStdString(result) + " (" + getErrorString(result) + ")");
 	}
+	return std::string{nameBuffer};
 }
 
-std::string USB_1024LS::serialNumber() const {
+std::string USB_IO_Base::getSerialNumber() const {
 	if (!this->m_serialNumber.empty()) {
-    return this->m_serialNumber;
+    	return this->m_serialNumber;
 	}
 
-	int EXTCCONV cbGetConfigString(int InfoType, int BoardNum, int DevNum,
-		int ConfigItem, char* ConfigVal, int* maxConfigLen);
+	char tempSerialNumber[NAME_BUFFER_MAX];
+	memset(tempSerialNumber, '\0', NAME_BUFFER_MAX);
 
-
-	char tempSerialNumber[SERIAL_NUMBER_BUFFER_1024LS];
-	memset(tempSerialNumber, '\0', SERIAL_NUMBER_BUFFER_1024LS);
-
-	auto max = SERIAL_NUMBER_BUFFER_1024LS;
+	auto max = NAME_BUFFER_MAX;
 
 	auto result = cbGetConfigString(BOARDINFO, this->m_boardNumber, 0, BISERIALNUM, tempSerialNumber, &max);
 	if (result != NOERRORS) {
@@ -48,7 +45,7 @@ std::string USB_1024LS::serialNumber() const {
 	return this->m_serialNumber;
 }
 
-std::string USB_IO_Base::getErrorString(unsigned int errorCode) {
+std::string USB_IO_Base::getErrorString(int errorCode) {
 	switch (errorCode) {
 	case (NOERRORS):
 		return "No error occurred";
@@ -99,7 +96,7 @@ std::string USB_IO_Base::getErrorString(unsigned int errorCode) {
 	case (BADRATE):
 		return "Inavlid sampling rate specified";
 	case (COMPATMODE):
-		return "Board switches set for "compatible" mode";
+		return "Board switches set for \"compatible\" mode";
 	case (TRIGSTATE):
 		return "Incorrect intial trigger state D0 must=TTL low)";
 	case (ADSTATUSHUNG):

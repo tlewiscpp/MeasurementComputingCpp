@@ -14,8 +14,8 @@ namespace MeasurementComputingCpp {
 USB_1024LS::USB_1024LS() :
     USB_IO_Base{"USB_1024LS"},
     m_hidDevice{hid_open(MCC_VID, USB1024LS_PID, nullptr)},
-    m_digitalPortMap{},
-    m_serialNumber{""}
+    m_serialNumber{""},
+    m_digitalPortMap{}
 {
     int initResult{hid_init()};
     if (initResult != 0) {
@@ -43,8 +43,8 @@ USB_1024LS::USB_1024LS() :
 USB_1024LS::USB_1024LS(USB_1024LS &&rhs) noexcept :
     USB_IO_Base{"USB_1024LS"},
     m_hidDevice{rhs.m_hidDevice},
-    m_digitalPortMap{std::move(rhs.m_digitalPortMap)},
-    m_serialNumber{std::move(rhs.m_serialNumber)}
+    m_serialNumber{std::move(rhs.m_serialNumber)},
+    m_digitalPortMap{std::move(rhs.m_digitalPortMap)}
 {
 
 }
@@ -52,8 +52,8 @@ USB_1024LS::USB_1024LS(USB_1024LS &&rhs) noexcept :
 USB_1024LS& USB_1024LS::operator=(USB_1024LS &&rhs) noexcept
 {
     this->m_hidDevice = rhs.m_hidDevice;
-    this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
     this->m_serialNumber = std::move(rhs.m_serialNumber);
+    this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
     return *this;
 }
 
@@ -107,12 +107,12 @@ bool USB_1024LS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool stat
     if ( (portID == DigitalPortID::PortA) || (portID == DigitalPortID::PortB) ) {
         upperPinNumber = BITS_PER_PORT_1024LS;
         if (pinNumber >= upperPinNumber) {
-            throw std::runtime_error("ERROR: USB_1024LS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
+            throw std::runtime_error("USB_1024LS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
         }
     } else {
         upperPinNumber = BITS_PER_PORT_1024LS/2;
         if (pinNumber >= upperPinNumber) {
-            throw std::runtime_error("ERROR: USB_1024LS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
+            throw std::runtime_error("USB_1024LS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
         }
     }
     if (this->m_digitalPortMap.find(portID)->second != USB_1024LS::PortDirection::DigitalOutput) {
@@ -128,12 +128,12 @@ bool USB_1024LS::digitalRead(DigitalPortID portID, uint8_t pinNumber)
     if ( (portID == DigitalPortID::PortA) || (portID == DigitalPortID::PortB) ) {
         upperPinNumber = BITS_PER_PORT_1024LS;
         if (pinNumber >= upperPinNumber) {
-            throw std::runtime_error("ERROR: USB_1024LS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
+            throw std::runtime_error("USB_1024LS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
         }
     } else {
         upperPinNumber = BITS_PER_PORT_1024LS/2;
         if (pinNumber >= upperPinNumber) {
-            throw std::runtime_error("ERROR: USB_1024LS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
+            throw std::runtime_error("USB_1024LS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
         }
     }
     if (this->m_digitalPortMap.find(portID)->second != USB_1024LS::PortDirection::DigitalInput) {

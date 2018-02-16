@@ -44,7 +44,7 @@ public:
     };
 
 #if defined(_WIN32)
-    USB_1208FS(unsigned int m_boardNumber);
+    explicit USB_1208FS(unsigned int m_boardNumber);
 #else
 	USB_1208FS()
 #endif //defined(_WIN32)
@@ -72,18 +72,18 @@ public:
     void resetDevice();
 
     std::string serialNumber() const;
-    static float analogToVoltage(short analogReading, AnalogInputMode inputMode = AnalogInputMode::SingleEnded, VoltageRange voltageRange = VoltageRange::V_10);
+    float analogToVoltage(short analogReading, AnalogInputMode inputMode = AnalogInputMode::SingleEnded, VoltageRange voltageRange = VoltageRange::V_10);
 
 private:
 #if defined(_WIN32)
 	unsigned int m_boardNumber;
 #else
     libusb_device_handle *m_usbDeviceHandle;
+    mutable std::string m_serialNumber;
 #endif //defined(_WIN32)
     std::map<DigitalPortID, PortDirection> m_digitalPortMap;
     std::map<DigitalPortID, uint8_t> m_digitalOutputTracker;
     AnalogInputMode m_analogInputMode;
-    mutable std::string m_serialNumber;
 
     static uint8_t digitalPortIDToUInt8(DigitalPortID portID);
     static uint8_t digitalPortDirectionToUInt8(PortDirection direction);

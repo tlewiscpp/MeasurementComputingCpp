@@ -12,12 +12,11 @@
 namespace MeasurementComputingCpp {
 
 USB_1208FS::USB_1208FS(unsigned int boardNumber) :
-    USB_IO_Base{"USB_1208FS"},
+    USB_IO_Base{"USB_1208FS", boardNumber},
     m_boardNumber{boardNumber},
     m_digitalPortMap{},
     m_digitalOutputTracker{},
-    m_analogInputMode{AnalogInputMode::SingleEnded},
-    m_serialNumber{""}
+    m_analogInputMode{AnalogInputMode::SingleEnded}
 {
 
 	auto boardName = this->getBoardName(boardNumber);
@@ -39,12 +38,11 @@ USB_1208FS::USB_1208FS(unsigned int boardNumber) :
 
 
 USB_1208FS::USB_1208FS(USB_1208FS &&rhs) noexcept :
-    USB_IO_Base{"USB_1208FS"},
+    USB_IO_Base{"USB_1208FS", rhs.m_boardNumber},
     m_boardNumber{rhs.m_boardNumber},
     m_digitalPortMap{std::move(rhs.m_digitalPortMap)},
     m_digitalOutputTracker{std::move(rhs.m_digitalOutputTracker)},
-    m_analogInputMode{rhs.m_analogInputMode},
-    m_serialNumber{std::move(rhs.m_serialNumber)}
+    m_analogInputMode{rhs.m_analogInputMode}
 {
 
 }
@@ -55,7 +53,6 @@ USB_1208FS& USB_1208FS::operator=(USB_1208FS &&rhs) noexcept
     this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
     this->m_digitalOutputTracker = std::move(rhs.m_digitalOutputTracker);
     this->m_analogInputMode = rhs.m_analogInputMode;
-    this->m_serialNumber = std::move(rhs.m_serialNumber);
     return *this;
 }
 
@@ -65,9 +62,12 @@ void USB_1208FS::setDigitalPortDirection(DigitalPortID portID, PortDirection dir
     if (currentPortDirection == direction) {
         return;
     }
-    usbDConfigPort_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), digitalPortDirectionToUInt8(direction));
+    auto result = cbDConfigPort(this->m_boardNumber, digitalPortIDToUInt8(portID), digitalPortDirectionToUInt8(direction));
+    if (result != NOERRORS) {
+        throw std::runtime_error("USB_1208FS::setDigitalPortDirection(DigitalPortID, PortDirection): cbDConfigPort returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+    }
     if (direction == PortDirection::DigitalOutput) {
-        usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+        cbDOut(this->m_boardNumber, digitalPortIDToUInt8(portID), 0x00);
     }
     this->m_digitalPortMap.find(portID)->second = direction;
 }
@@ -75,9 +75,9 @@ void USB_1208FS::setDigitalPortDirection(DigitalPortID portID, PortDirection dir
 uint8_t USB_1208FS::digitalPortIDToUInt8(DigitalPortID portID)
 {
     if (portID == USB_1208FS::DigitalPortID::PortA) {
-        return DIO_PORTA;
+        return FIRSTPORTA;
     } else if (portID == USB_1208FS::DigitalPortID::PortB) {
-        return DIO_PORTB;
+        return FIRSTPORTB;
     } else {
         throw std::runtime_error("USB_1208FS::digitalPortIDToUInt8(DigitalPortID): Invalid DigitalPortID");
     }
@@ -86,9 +86,9 @@ uint8_t USB_1208FS::digitalPortIDToUInt8(DigitalPortID portID)
 uint8_t USB_1208FS::digitalPortDirectionToUInt8(PortDirection direction)
 {
     if (direction == USB_1208FS::PortDirection::DigitalInput) {
-        return DIO_DIR_IN;
+        return SIGNAL_IN;
     } else if (direction == USB_1208FS::PortDirection::DigitalOutput) {
-        return DIO_DIR_OUT;
+        return SIGNAL_OUT;
     } else {
         throw std::runtime_error("USB_1208FS::digitalPortDirectionToUInt8(PortDirection): Invalid PortDirection");
     }
@@ -111,7 +111,7 @@ bool USB_1208FS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool stat
     //Then, we write it out the the port
     uint8_t *targetPortCurrentState{&(this->m_digitalOutputTracker.find(portID)->second)};
     state ? SET_BIT(*targetPortCurrentState, pinNumber) : CLEAR_BIT(*targetPortCurrentState, pinNumber);
-    usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), *targetPortCurrentState);
+    cbDOut(this->m_boardNumber, digitalPortIDToUInt8(portID), *targetPortCurrentState);
     return true;
 }
 
@@ -119,47 +119,39 @@ bool USB_1208FS::digitalRead(DigitalPortID portID, uint8_t pinNumber)
 {
     int upperPinNumber{BITS_PER_PORT_1208FS};
     if (pinNumber >= upperPinNumber) {
-        throw std::runtime_error("ERROR: USB_1208FS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
+        throw std::runtime_error("USB_1208FS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
     }
     if (this->m_digitalPortMap.find(portID)->second != USB_1208FS::PortDirection::DigitalInput) {
         return false;
     }
-    uint8_t allValues{0};
-    usbDIn_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), &allValues);
+    uint16_t allValues{0};
+    cbDIn(this->m_boardNumber, digitalPortIDToUInt8(portID), &allValues);
     return static_cast<bool>(CHECK_BIT(allValues, pinNumber));
 }
 
 USB_1208FS::~USB_1208FS()
 {
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 1);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_OUT| 2);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 3);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 4);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 5);
-    for (uint8_t i = 0; i < 4; i++) {
-        libusb_release_interface(this->m_usbDeviceHandle, i);
-    }
-    libusb_close(this->m_usbDeviceHandle);
+
 }
 
 uint8_t USB_1208FS::voltageRangeToDifferentialGain(USB_1208FS::VoltageRange voltageRange)
 {
     if (voltageRange == USB_1208FS::VoltageRange::V_20) {
-        return BP_20_00V;
+        return BIP20VOLTS;
     } else if (voltageRange == USB_1208FS::VoltageRange::V_10) {
-        return BP_10_00V;
+        return BIP10VOLTS;
     } else if (voltageRange == USB_1208FS::VoltageRange::V_5) {
-        return BP_5_00V;
+        return BIP5VOLTS;
     } else if (voltageRange == USB_1208FS::VoltageRange::V_4) {
-        return BP_4_00V;
+        return BIP4VOLTS;
     } else if (voltageRange == USB_1208FS::VoltageRange::V_2_5) {
-        return BP_2_50V;
+        return BIP2PT5VOLTS;
     } else if (voltageRange == USB_1208FS::VoltageRange::V_2) {
-        return BP_2_00V;
+        return BIP2VOLTS;
     } else if (voltageRange == USB_1208FS::VoltageRange::V_1_2_5) {
-        return BP_1_25V;
+        return BIP1PT25VOLTS;
     } else if (voltageRange == USB_1208FS::VoltageRange::V_1) {
-        return BP_1_00V;
+        return BIP1VOLTS;
     }
     return 0;
 }
@@ -189,23 +181,37 @@ short USB_1208FS::analogRead(uint8_t pinNumber, USB_1208FS::VoltageRange voltage
                                  + toStdString(BITS_PER_PORT_1208FS)
                                  + ")" );
     }
+    USHORT returnValue{0};
     if (this->m_analogInputMode == USB_1208FS::AnalogInputMode::SingleEnded) {
-        return usbAIn_USB1208FS(this->m_usbDeviceHandle, pinNumber, SE_10_00V);
+        auto result = cbAIn(this->m_boardNumber, pinNumber, UNI10VOLTS, &returnValue);
+        if (result != NOERRORS) {
+            throw std::runtime_error("USB_1208FS::analogRead(uint8_t, VoltageRange): cbAIn returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+        }
     } else {
-        return usbAIn_USB1208FS(this->m_usbDeviceHandle, pinNumber, this->voltageRangeToDifferentialGain(voltageRange));
+        auto result = cbAIn(this->m_boardNumber, pinNumber, this->voltageRangeToDifferentialGain(voltageRange), &returnValue);
+        if (result != NOERRORS) {
+            throw std::runtime_error("USB_1208FS::analogRead(uint8_t, VoltageRange): cbAIn returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+        }
     }
-
+    return returnValue;
 }
 
 float USB_1208FS::voltageRead(uint8_t pinNumber, USB_1208FS::VoltageRange voltageRange)
 {
     short analogReading{this->analogRead(pinNumber, voltageRange)};
+    float returnValue{0};
     if (this->m_analogInputMode == USB_1208FS::AnalogInputMode::SingleEnded) {
-        return volts_SE(analogReading);
+        auto result = cbToEngUnits (this->m_boardNumber, UNI10VOLTS, static_cast<USHORT>(analogReading), &returnValue);
+        if (result != NOERRORS) {
+            throw std::runtime_error("USB_1208FS::voltageRead(uint8_t, VoltageRange): cbToEngUnits returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+        }
     } else {
-        return volts_FS(this->voltageRangeToDifferentialGain(voltageRange), analogReading);
+        auto result = cbToEngUnits(this->m_boardNumber, this->voltageRangeToDifferentialGain(voltageRange), static_cast<USHORT>(analogReading), &returnValue);
+        if (result != NOERRORS) {
+            throw std::runtime_error("USB_1208FS::voltageRead(uint8_t, VoltageRange): cbToEngUnits returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+        }
     }
-
+    return returnValue;
 }
 
 void USB_1208FS::setAnalogInputMode(USB_1208FS::AnalogInputMode analogInputMode)
@@ -223,49 +229,53 @@ void USB_1208FS::analogWrite(uint8_t pinNumber, uint16_t state)
     if (pinNumber > (NUMBER_OF_ANALOG_OUTPUT_PINS - 1)) {
         throw std::runtime_error("SB_1208FS::analogWrite(uint8_t, uint16_t): analogWrite pin number exceeds maximum pin number (" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(NUMBER_OF_ANALOG_OUTPUT_PINS - 1));
     }
-    usbAOut_USB1208FS(this->m_usbDeviceHandle, pinNumber, state);
+    auto result = cbAOut(this->m_boardNumber, pinNumber, UNI5VOLTS, state);
+    if (result != NOERRORS) {
+        throw std::runtime_error("USB_1208FS::analogWrite(uint8_t, uint16_t): cbAOut returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+    }
 }
 
 std::string USB_1208FS::serialNumber() const
 {
-    if (!this->m_serialNumber.empty()) {
-        return this->m_serialNumber;
-    }
-    unsigned char tempSerialNumber[SERIAL_NUMBER_BUFFER_1208FS];
-    memset(tempSerialNumber, '\0', SERIAL_NUMBER_BUFFER_1208FS);
-    getUsbSerialNumber(this->m_usbDeviceHandle, tempSerialNumber);
-
-    char tempSerialNumberChar[SERIAL_NUMBER_BUFFER_1208FS];
-    memset(tempSerialNumberChar, '\0', SERIAL_NUMBER_BUFFER_1208FS);
-
-    for (int i = 0; i < SERIAL_NUMBER_BUFFER_1208FS; i++) {
-        tempSerialNumberChar[i] = static_cast<char>(tempSerialNumber[i]);
-    }
-    this->m_serialNumber = std::string{tempSerialNumberChar};
-    return this->m_serialNumber;
+    return USB_IO_Base::getSerialNumber();
 }
 
-float USB_1208FS::analogToVoltage(short analogReading, AnalogInputMode inputMode, VoltageRange voltageRange)
-{
-    if (inputMode == AnalogInputMode::SingleEnded) {
-        return volts_SE(analogReading);
+float USB_1208FS::analogToVoltage(short analogReading, AnalogInputMode inputMode, VoltageRange voltageRange) {
+    float returnValue{0};
+    if (inputMode == USB_1208FS::AnalogInputMode::SingleEnded) {
+        auto result = cbToEngUnits (this->m_boardNumber, UNI10VOLTS, static_cast<USHORT>(analogReading), &returnValue);
+        if (result != NOERRORS) {
+            throw std::runtime_error("USB_1208FS::voltageRead(uint8_t, VoltageRange): cbToEngUnits returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+        }
     } else {
-        return volts_FS(analogReading, voltageRangeToDifferentialGain(voltageRange));
+        auto result = cbToEngUnits(this->m_boardNumber, this->voltageRangeToDifferentialGain(voltageRange), static_cast<USHORT>(analogReading), &returnValue);
+        if (result != NOERRORS) {
+            throw std::runtime_error("USB_1208FS::voltageRead(uint8_t, VoltageRange): cbToEngUnits returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+        }
     }
+    return returnValue;
 }
 
-void USB_1208FS::resetDevice()
-{
-    usbReset_USB1208FS(this->m_usbDeviceHandle);
+void USB_1208FS::resetDevice() {
+    //Nothing to do here
 }
 
 void USB_1208FS::resetCounter() {
-    usbInitCounter_USB1208FS(this->m_usbDeviceHandle);
+    auto result = cbCClear (this->m_boardNumber, COUNT1);
+    if (result != NOERRORS) {
+        throw std::runtime_error("USB_1208FS::resetCounter(): cbCClear returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+    }
 }
 
 uint32_t USB_1208FS::readCounter() {
-    return usbReadCounter_USB1208FS(this->m_usbDeviceHandle);
+    ULONG returnValue{ 0 };
+    auto result = cbCIn32(this->m_boardNumber, COUNT1, &returnValue);
+    if (result != NOERRORS) {
+        throw std::runtime_error("USB_1208FS::readCounter(): cbCIn32 returned " + toStdString(result) + " (" + getErrorString(result) + ")");
+    }
+    return static_cast<uint32_t>(returnValue);
 }
+
 
 
 } //namespace MeasurementComputingCpp

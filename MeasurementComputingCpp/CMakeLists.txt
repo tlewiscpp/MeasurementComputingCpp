@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD 14)
 set (PROJECT_NAME MeasurementComputingCpp)
 project (${PROJECT_NAME} CXX)
 
-if (WIN32)
+if (WIN32 OR WIN64)
     set(IMPL_DIR win32)
     set(WINDOWS_COMMON win32/common/)
 else()
@@ -32,16 +32,21 @@ set (${PROJECT_NAME}_HEADER_FILES
 if (SHARED_LIB_BUILD)
     set(BUILD_TYPE "SHARED")
 else()
-    set(BUILD_TYPE "STATIC" win32/USB_IO_Base.cpp posix/USB_IO_Base.cpp)
+    set(BUILD_TYPE "STATIC")
 endif()
 
 add_library(${PROJECT_NAME} ${BUILD_TYPE}
     ${${PROJECT_NAME}_SOURCE_FILES}
     ${${PROJECT_NAME}_HEADER_FILES})
 
-if (WIN32)
-    target_link_libraries(${PROJECT_NAME}
-            cbw64)
+if (WIN32 OR WIN64)
+    link_directories(${WINDOWS_COMMON})
+    if(NOT "${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
+        target_link_libraries(${PROJECT_NAME} cbw32.lib)
+    else()
+        target_link_libraries(${PROJECT_NAME} cbw64.lib)
+    endif()
+
 
     target_include_directories(${PROJECT_NAME}
             PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/

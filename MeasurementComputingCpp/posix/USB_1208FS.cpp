@@ -15,12 +15,11 @@ namespace MeasurementComputingCpp {
 USB_1208FS::USB_1208FS() :
     USB_IO_Base{"USB_1208FS"},
     m_usbDeviceHandle{nullptr},
+    m_serialNumber{""},
     m_digitalPortMap{},
     m_digitalOutputTracker{},
-    m_analogInputMode{AnalogInputMode::SingleEnded},
-    m_serialNumber{""}
+    m_analogInputMode{AnalogInputMode::SingleEnded}
 {
-
 
     int initResult{libusb_init(nullptr)};
     if (initResult != 0) {
@@ -49,10 +48,10 @@ USB_1208FS::USB_1208FS() :
 USB_1208FS::USB_1208FS(USB_1208FS &&rhs) noexcept :
     USB_IO_Base{"USB_1208FS"},
     m_usbDeviceHandle{rhs.m_usbDeviceHandle},
+    m_serialNumber{std::move(rhs.m_serialNumber)},
     m_digitalPortMap{std::move(rhs.m_digitalPortMap)},
     m_digitalOutputTracker{std::move(rhs.m_digitalOutputTracker)},
-    m_analogInputMode{rhs.m_analogInputMode},
-    m_serialNumber{std::move(rhs.m_serialNumber)}
+    m_analogInputMode{rhs.m_analogInputMode}
 {
 
 }
@@ -60,10 +59,10 @@ USB_1208FS::USB_1208FS(USB_1208FS &&rhs) noexcept :
 USB_1208FS& USB_1208FS::operator=(USB_1208FS &&rhs) noexcept
 {
     this->m_usbDeviceHandle = rhs.m_usbDeviceHandle;
+    this->m_serialNumber = std::move(rhs.m_serialNumber);
     this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
     this->m_digitalOutputTracker = std::move(rhs.m_digitalOutputTracker);
     this->m_analogInputMode = rhs.m_analogInputMode;
-    this->m_serialNumber = std::move(rhs.m_serialNumber);
     return *this;
 }
 
@@ -127,7 +126,7 @@ bool USB_1208FS::digitalRead(DigitalPortID portID, uint8_t pinNumber)
 {
     int upperPinNumber{BITS_PER_PORT_1208FS};
     if (pinNumber >= upperPinNumber) {
-        throw std::runtime_error("ERROR: USB_1208FS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
+        throw std::runtime_error("USB_1208FS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
     }
     if (this->m_digitalPortMap.find(portID)->second != USB_1208FS::PortDirection::DigitalInput) {
         return false;

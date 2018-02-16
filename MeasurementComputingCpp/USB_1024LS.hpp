@@ -30,7 +30,7 @@ public:
     };
     
 #if defined(_WIN32)
-    USB_1024LS(unsigned int boardNumber);
+        explicit USB_1024LS(unsigned int boardNumber);
 #else
 	USB_1024LS();
 #endif //defined(_WIN32)
@@ -57,9 +57,9 @@ private:
 	unsigned int m_boardNumber;
 #else
     hid_device_ *m_hidDevice;
+    mutable std::string m_serialNumber;
 #endif //!defined(_WIN32)
     std::map<DigitalPortID, PortDirection> m_digitalPortMap;
-    mutable std::string m_serialNumber;
 
     static uint8_t digitalPortIDToUInt8(DigitalPortID portID);
     static uint8_t digitalPortDirectionToUInt8(PortDirection direction);

@@ -6,9 +6,6 @@
 #include "USB_IO_Base.hpp"
 
 #if !defined(_WIN32)
-struct Calibration_AIN_t;
-struct libusb_device_handle;
-#endif //!defined(_WIN32)
 
 namespace MeasurementComputingCpp {
 
@@ -55,7 +52,7 @@ public:
     };
 
 #if defined(_WIN32)
-	USB_1608FS(unsigned int boardNumber);
+	explicit USB_1608FS(unsigned int boardNumber);
 #else
     USB_1608FS();
 #endif //defined(_WIN32)
@@ -89,9 +86,9 @@ private:
 #else
         libusb_device_handle *m_usbDeviceHandle;
         Calibration_AIN_t **m_analogInputCalibrationTable;
-#endif //!defined(_WIN32)
-        std::map<DigitalPinNumber, PortDirection> m_digitalPortMap;
         mutable std::string m_serialNumber;
+#endif //defined(_WIN32)
+        std::map<DigitalPinNumber, PortDirection> m_digitalPortMap;
 
     static uint8_t digitalPortDirectionToUInt8(PortDirection direction);
     static uint8_t voltageRangeToAnalogGain(VoltageRange voltageRange);
@@ -101,5 +98,7 @@ private:
 };
 
 } //namespace MeasurementComputingCpp
+
+#endif //!defined(_WIN32)
 
 #endif //MEASUREMENTCOMPUTINGIO_1608FS_H
