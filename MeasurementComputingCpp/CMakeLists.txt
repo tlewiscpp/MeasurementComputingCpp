@@ -42,9 +42,9 @@ add_library(${PROJECT_NAME} ${BUILD_TYPE}
 if (WIN32 OR WIN64)
     link_directories(${WINDOWS_COMMON})
     if(NOT "${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
-        target_link_libraries(${PROJECT_NAME} cbw32.lib)
+        target_link_libraries(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/${PROJECT_NAME}/${WINDOWS_COMMON}/cbw32.lib)
     else()
-        target_link_libraries(${PROJECT_NAME} cbw64.lib)
+        target_link_libraries(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/${PROJECT_NAME}/${WINDOWS_COMMON}/cbw64.lib)
     endif()
 
 
