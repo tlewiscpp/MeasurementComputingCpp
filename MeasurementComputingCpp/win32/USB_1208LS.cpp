@@ -16,7 +16,7 @@ namespace MeasurementComputingCpp {
 #define SERIAL_NUMBER_BUFFER_1208LS 255
 
 USB_1208LS::USB_1208LS(unsigned int boardNumber) :
-    USB_IO_Base{"USB_1208LS", boardNumber},
+    USB_IO_Base{"USB-1208LS", boardNumber},
     m_boardNumber{boardNumber},
     m_digitalPortMap{},
     m_analogInputMode{AnalogInputMode::SingleEnded}
@@ -24,7 +24,7 @@ USB_1208LS::USB_1208LS(unsigned int boardNumber) :
 
     auto boardName = this->getBoardName(boardNumber);
     if (boardName != this->name()) {
-        throw std::runtime_error("USB_1208FS::USB_1208FS(): board number " + toStdString(boardNumber) + " is of type " + boardName + ", not " + this->name());
+        throw std::runtime_error("USB_1208LS::USB_1208LS(): board number " + toStdString(boardNumber) + " is of type " + boardName + ", not " + this->name());
     }
 
     cbDConfigPort(this->m_boardNumber, this->digitalPortIDToUInt8(DigitalPortID::PortA), this->digitalPortDirectionToUInt8(PortDirection::DigitalInput));

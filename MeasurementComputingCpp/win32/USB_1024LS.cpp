@@ -11,7 +11,7 @@
 namespace MeasurementComputingCpp {
 
 USB_1024LS::USB_1024LS(unsigned int boardNumber) :
-    USB_IO_Base{"USB_1024LS", boardNumber},
+    USB_IO_Base{"USB-1024LS", boardNumber},
 	m_boardNumber{ boardNumber },
     m_digitalPortMap{}
 {

@@ -12,7 +12,7 @@
 namespace MeasurementComputingCpp {
 
 USB_1208FS::USB_1208FS(unsigned int boardNumber) :
-    USB_IO_Base{"USB_1208FS", boardNumber},
+    USB_IO_Base{"USB-1208FS", boardNumber},
     m_boardNumber{boardNumber},
     m_digitalPortMap{},
     m_digitalOutputTracker{},
