@@ -35,18 +35,22 @@ else()
     set(BUILD_TYPE "STATIC")
 endif()
 
+message(STATUS "MeasurementComputingCpp BUILD_TYPE = ${BUILD_TYPE}")
+
 add_library(${PROJECT_NAME} ${BUILD_TYPE}
     ${${PROJECT_NAME}_SOURCE_FILES}
     ${${PROJECT_NAME}_HEADER_FILES})
 
 if (WIN32 OR WIN64)
     link_directories(${WINDOWS_COMMON})
-    if(NOT "${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
-        target_link_libraries(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/${PROJECT_NAME}/${WINDOWS_COMMON}/cbw32.lib)
+    if("${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
+        set(MCC_LIB_NAME cbw64)
     else()
-        target_link_libraries(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/${PROJECT_NAME}/${WINDOWS_COMMON}/cbw64.lib)
+        set(MCC_LIB_NAME cbw32)
     endif()
-
+    set(MCC_LIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${WINDOWS_COMMON}/${MCC_LIB_NAME}.lib)
+    MESSAGE(STATUS "MCC_LIB_PATH = ${MCC_LIB_PATH}")
+    target_link_libraries(${PROJECT_NAME} ${MCC_LIB_PATH})
 
     target_include_directories(${PROJECT_NAME}
             PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/

@@ -25,10 +25,4 @@ else()
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
-if (NOT STATIC_BUILD)
-    set(SHARED_LIB_BUILD ON)
-else()
-    unset (SHARED_LIB_BUILD)
-endif()
-
 add_subdirectory(MeasurementComputingCpp)
