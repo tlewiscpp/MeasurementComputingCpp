@@ -1,5 +1,5 @@
-#ifndef MEASUREMENTCOMPUTINGCPP_1208FS_H
-#define MEASUREMENTCOMPUTINGCPP_1208FS_H
+#ifndef MEASUREMENTCOMPUTINGCPP_1208FS_HPP
+#define MEASUREMENTCOMPUTINGCPP_1208FS_HPP
 
 #include <map>
 #include <sstream>
@@ -61,6 +61,8 @@ public:
     void setAnalogInputMode(AnalogInputMode analogInputMode);
     AnalogInputMode analogInputMode() const;
 
+    bool digitalWrite(uint8_t pinNumber, bool state);
+    bool digitalRead(uint8_t pinNumber);
     bool digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool state);
     bool digitalRead(DigitalPortID portID, uint8_t pinNumber);
     short analogRead(uint8_t pinNumber, VoltageRange voltageRange = VoltageRange::V_10);
@@ -88,11 +90,11 @@ private:
     static uint8_t digitalPortIDToUInt8(DigitalPortID portID);
     static uint8_t digitalPortDirectionToUInt8(PortDirection direction);
     static uint8_t voltageRangeToDifferentialGain(VoltageRange voltageRange);
-
+    std::pair<DigitalPortID, uint8_t> rawPinNumberToPinDefinition(uint8_t pinNumber);
     template <typename T> static inline std::string toStdString(const T &t) { return dynamic_cast<std::ostringstream &>(std::ostringstream{} << t).str(); }
 
 };
 
 } //namespace MeasurementComputingCpp
 
-#endif //MEASUREMENTCOMPUTINGIO_1208FS_H
+#endif //MEASUREMENTCOMPUTINGIO_1208FS_HPP
