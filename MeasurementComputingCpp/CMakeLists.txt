@@ -29,17 +29,16 @@ set (${PROJECT_NAME}_HEADER_FILES
         ${SOURCE_ROOT}/USB_1208FS.hpp
         ${SOURCE_ROOT}/USB_1608FS.hpp)
 
-if (SHARED_LIB_BUILD)
-    set(BUILD_TYPE "SHARED")
-else()
-    set(BUILD_TYPE "STATIC")
-endif()
-
-message(STATUS "MeasurementComputingCpp BUILD_TYPE = ${BUILD_TYPE}")
-
-add_library(${PROJECT_NAME} ${BUILD_TYPE}
+add_library(${PROJECT_NAME} SHARED
     ${${PROJECT_NAME}_SOURCE_FILES}
     ${${PROJECT_NAME}_HEADER_FILES})
+
+add_library(${PROJECT_NAME}_STATIC STATIC
+            ${${PROJECT_NAME}_SOURCE_FILES}
+            ${${PROJECT_NAME}_HEADER_FILES})
+
+set_target_properties(${PROJECT_NAME}_STATIC PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
+
 
 if (WIN32 OR WIN64)
     link_directories(${WINDOWS_COMMON})
@@ -51,20 +50,35 @@ if (WIN32 OR WIN64)
     set(MCC_LIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${WINDOWS_COMMON}/${MCC_LIB_NAME}.lib)
     MESSAGE(STATUS "MCC_LIB_PATH = ${MCC_LIB_PATH}")
     target_link_libraries(${PROJECT_NAME} ${MCC_LIB_PATH})
+    target_link_libraries(${PROJECT_NAME}_STATIC ${MCC_LIB_PATH})
 
     target_include_directories(${PROJECT_NAME}
             PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
             PUBLIC ${SOURCE_ROOT}/)
+
+    target_include_directories(${PROJECT_NAME}_STATIC
+                               PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
+                               PUBLIC ${SOURCE_ROOT}/)
 else()
     target_link_libraries(${PROJECT_NAME}
             usb-1.0
             hidapi-libusb
             mccusb)
 
+    target_link_libraries(${PROJECT_NAME}_STATIC
+                          usb-1.0
+                          hidapi-libusb
+                          mccusb)
+
     target_include_directories(${PROJECT_NAME}
             PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
             PUBLIC ${SOURCE_ROOT}/
             PUBLIC ${MCCUSB_LIBUSB_SOURCE_DIR}/)
+
+    target_include_directories(${PROJECT_NAME}_STATIC
+                               PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
+                               PUBLIC ${SOURCE_ROOT}/
+                               PUBLIC ${MCCUSB_LIBUSB_SOURCE_DIR}/)
 endif()
 
 
