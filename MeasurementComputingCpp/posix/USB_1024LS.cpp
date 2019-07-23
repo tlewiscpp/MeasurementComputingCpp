@@ -11,6 +11,11 @@
 
 namespace MeasurementComputingCpp {
 
+constexpr auto PORT_A_MAX_PIN_NUMBER = BITS_PER_PORT_1024LS;
+constexpr auto PORT_B_MAX_PIN_NUMBER = (BITS_PER_PORT_1024LS*2);
+constexpr auto PORT_C_LOW_MAX_PIN_NUMBER = (BITS_PER_PORT_1024LS*3) - (BITS_PER_PORT_1024LS/2);
+constexpr auto PORT_C_HIGH_MAX_PIN_NUMBER = (BITS_PER_PORT_1024LS*3);
+
 USB_1024LS::USB_1024LS() :
     USB_IO_Base{"USB_1024LS"},
     m_hidDevice{hid_open(MCC_VID, USB1024LS_PID, nullptr)},
@@ -49,16 +54,14 @@ USB_1024LS::USB_1024LS(USB_1024LS &&rhs) noexcept :
 
 }
 
-USB_1024LS& USB_1024LS::operator=(USB_1024LS &&rhs) noexcept
-{
+USB_1024LS& USB_1024LS::operator=(USB_1024LS &&rhs) noexcept {
     this->m_hidDevice = rhs.m_hidDevice;
     this->m_serialNumber = std::move(rhs.m_serialNumber);
     this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
     return *this;
 }
 
-uint8_t USB_1024LS::digitalPortIDToUInt8(DigitalPortID portID)
-{
+uint8_t USB_1024LS::digitalPortIDToUInt8(DigitalPortID portID) {
     if (portID == USB_1024LS::DigitalPortID::PortA) {
         return DIO_PORTA;
     } else if (portID == USB_1024LS::DigitalPortID::PortB) {
@@ -72,8 +75,7 @@ uint8_t USB_1024LS::digitalPortIDToUInt8(DigitalPortID portID)
     }
 }
 
-uint8_t USB_1024LS::digitalPortDirectionToUInt8(PortDirection direction)
-{
+uint8_t USB_1024LS::digitalPortDirectionToUInt8(PortDirection direction) {
     if (direction == USB_1024LS::PortDirection::DigitalInput) {
         return DIO_DIR_IN;
     } else if (direction == USB_1024LS::PortDirection::DigitalOutput) {
@@ -83,8 +85,7 @@ uint8_t USB_1024LS::digitalPortDirectionToUInt8(PortDirection direction)
     }
 }
 
-void USB_1024LS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction)
-{
+void USB_1024LS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction) {
     auto currentPortDirection = this->m_digitalPortMap.find(portID)->second;
     if (currentPortDirection == direction) {
         return;
@@ -96,13 +97,11 @@ void USB_1024LS::setDigitalPortDirection(DigitalPortID portID, PortDirection dir
     this->m_digitalPortMap.find(portID)->second = direction;
 }
 
-USB_1024LS::PortDirection USB_1024LS::digitalPortDirection(USB_1024LS::DigitalPortID portID) const
-{
+USB_1024LS::PortDirection USB_1024LS::digitalPortDirection(USB_1024LS::DigitalPortID portID) const {
     return this->m_digitalPortMap.find(portID)->second;
 }
 
-bool USB_1024LS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool state)
-{
+bool USB_1024LS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool state) {
     int upperPinNumber{0};
     if ( (portID == DigitalPortID::PortA) || (portID == DigitalPortID::PortB) ) {
         upperPinNumber = BITS_PER_PORT_1024LS;
@@ -119,6 +118,45 @@ bool USB_1024LS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool stat
         return false;
     }
     usbDBitOut_USB1024LS(this->m_hidDevice, digitalPortIDToUInt8(portID), pinNumber, static_cast<uint8_t>(state));
+    return true;
+}
+
+bool USB_1024LS::digitalRead(uint8_t pinNumber) {
+    DigitalPortID portID{};
+    uint8_t adjustedPinNumber{};
+    auto result = getDigitalPortIDAndPinNumber(pinNumber, &portID, &adjustedPinNumber);
+    if (!result) {
+        throw std::runtime_error("USB_1024LS::digitalRead(bool): pinNumber must be between 0 and " + toStdString(PORT_C_HIGH_MAX_PIN_NUMBER) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(PORT_C_HIGH_MAX_PIN_NUMBER));
+    }
+    return this->digitalRead(portID, adjustedPinNumber);
+}
+
+bool USB_1024LS::digitalWrite(uint8_t pinNumber, bool state) {
+    DigitalPortID portID{};
+    uint8_t adjustedPinNumber{};
+    auto result = getDigitalPortIDAndPinNumber(pinNumber, &portID, &adjustedPinNumber);
+    if (!result) {
+        throw std::runtime_error("USB_1024LS::digitalWrite(uint8_t, bool): pinNumber must be between 0 and " + toStdString(PORT_C_HIGH_MAX_PIN_NUMBER) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(PORT_C_HIGH_MAX_PIN_NUMBER));
+    }
+    return this->digitalWrite(portID, adjustedPinNumber, state);
+}
+
+bool USB_1024LS::getDigitalPortIDAndPinNumber(uint8_t pinNumber, DigitalPortID *outPortID, uint8_t *outAdjustedPinNumber) {
+    if (pinNumber < PORT_A_MAX_PIN_NUMBER) {
+        *outPortID = DigitalPortID::PortA;
+        *outAdjustedPinNumber = pinNumber;
+    } else if ( (pinNumber >= PORT_A_MAX_PIN_NUMBER) && (pinNumber < PORT_B_MAX_PIN_NUMBER) ) {
+        *outPortID = DigitalPortID::PortB;
+        *outAdjustedPinNumber = pinNumber - BITS_PER_PORT_1024LS;
+    } else if ( (pinNumber >= PORT_B_MAX_PIN_NUMBER) && (pinNumber < PORT_C_LOW_MAX_PIN_NUMBER) ) {
+        *outPortID = DigitalPortID::PortCLow;
+        *outAdjustedPinNumber = pinNumber - (BITS_PER_PORT_1024LS*2);
+    } else if ( (pinNumber >= PORT_C_LOW_MAX_PIN_NUMBER) && (pinNumber < PORT_C_HIGH_MAX_PIN_NUMBER) ) {
+        *outPortID = DigitalPortID::PortCHigh;
+        *outAdjustedPinNumber = pinNumber - (BITS_PER_PORT_1024LS*2) - (BITS_PER_PORT_1024LS/2);
+    } else {
+        return false;
+    }
     return true;
 }
 
@@ -144,8 +182,7 @@ bool USB_1024LS::digitalRead(DigitalPortID portID, uint8_t pinNumber)
     return static_cast<bool>(CHECK_BIT(allValues, pinNumber));
 }
 
-std::string USB_1024LS::serialNumber() const
-{
+std::string USB_1024LS::serialNumber() const {
     if (!this->m_serialNumber.empty()) {
         return this->m_serialNumber;
     }
@@ -172,8 +209,7 @@ uint32_t USB_1024LS::readCounter() {
     return usbReadCounter_USB1024LS(this->m_hidDevice);
 }
 
-USB_1024LS::~USB_1024LS()
-{
+USB_1024LS::~USB_1024LS() {
     hid_close(this->m_hidDevice);
 }
 

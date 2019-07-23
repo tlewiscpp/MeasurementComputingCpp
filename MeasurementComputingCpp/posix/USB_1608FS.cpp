@@ -71,8 +71,7 @@ USB_1608FS::USB_1608FS(USB_1608FS &&rhs) noexcept :
     }
 }
 
-USB_1608FS& USB_1608FS::operator=(USB_1608FS &&rhs) noexcept
-{
+USB_1608FS& USB_1608FS::operator=(USB_1608FS &&rhs) noexcept {
     this->m_usbDeviceHandle = rhs.m_usbDeviceHandle;
     this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
     this->m_serialNumber = std::move(rhs.m_serialNumber);
@@ -85,8 +84,7 @@ USB_1608FS& USB_1608FS::operator=(USB_1608FS &&rhs) noexcept
     return *this;
 }
 
-void USB_1608FS::setDigitalPortDirection(PortDirection portDirection)
-{
+void USB_1608FS::setDigitalPortDirection(PortDirection portDirection) {
     usbDConfigPort_USB1608FS(this->m_usbDeviceHandle, this->digitalPortDirectionToUInt8(portDirection));
     if (portDirection == PortDirection::DigitalOutput) {
         usbDOut_USB1608FS(this->m_usbDeviceHandle, 0x00); //0b00000000
@@ -96,8 +94,7 @@ void USB_1608FS::setDigitalPortDirection(PortDirection portDirection)
     }
 }
 
-void USB_1608FS::setDigitalPortDirection(DigitalPinNumber pinNumber, PortDirection direction)
-{
+void USB_1608FS::setDigitalPortDirection(DigitalPinNumber pinNumber, PortDirection direction) {
     auto currentPortDirection = this->m_digitalPortMap.find(pinNumber)->second;
     if (currentPortDirection == direction) {
         return;
@@ -109,8 +106,7 @@ void USB_1608FS::setDigitalPortDirection(DigitalPinNumber pinNumber, PortDirecti
     this->m_digitalPortMap.find(pinNumber)->second = direction;
 }
 
-uint8_t USB_1608FS::digitalPortDirectionToUInt8(PortDirection direction)
-{
+uint8_t USB_1608FS::digitalPortDirectionToUInt8(PortDirection direction) {
     if (direction == USB_1608FS::PortDirection::DigitalInput) {
         return DIO_DIR_IN;
     } else if (direction == USB_1608FS::PortDirection::DigitalOutput) {
@@ -120,13 +116,11 @@ uint8_t USB_1608FS::digitalPortDirectionToUInt8(PortDirection direction)
     }
 }
 
-USB_1608FS::PortDirection USB_1608FS::digitalPortDirection(USB_1608FS::DigitalPinNumber pinNumber) const
-{
+USB_1608FS::PortDirection USB_1608FS::digitalPortDirection(USB_1608FS::DigitalPinNumber pinNumber) const {
     return this->m_digitalPortMap.find(pinNumber)->second;
 }
 
-bool USB_1608FS::digitalWrite(DigitalPinNumber pinNumber, bool state)
-{
+bool USB_1608FS::digitalWrite(DigitalPinNumber pinNumber, bool state) {
     if (this->m_digitalPortMap.find(pinNumber)->second != USB_1608FS::PortDirection::DigitalOutput) {
         return false;
     }
@@ -134,8 +128,7 @@ bool USB_1608FS::digitalWrite(DigitalPinNumber pinNumber, bool state)
     return true;
 }
 
-bool USB_1608FS::digitalRead(DigitalPinNumber pinNumber)
-{
+bool USB_1608FS::digitalRead(DigitalPinNumber pinNumber) {
     if (this->m_digitalPortMap.find(pinNumber)->second != USB_1608FS::PortDirection::DigitalInput) {
         return false;
     }
@@ -144,8 +137,7 @@ bool USB_1608FS::digitalRead(DigitalPinNumber pinNumber)
     return static_cast<bool>(bitValue);
 }
 
-USB_1608FS::~USB_1608FS()
-{
+USB_1608FS::~USB_1608FS() {
     for (int i = 0; i < 8; i++) {
         delete[] this->m_analogInputCalibrationTable[i];
     }

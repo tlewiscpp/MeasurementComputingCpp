@@ -90,7 +90,7 @@ private:
     static uint8_t digitalPortIDToUInt8(DigitalPortID portID);
     static uint8_t digitalPortDirectionToUInt8(PortDirection direction);
     static uint8_t voltageRangeToDifferentialGain(VoltageRange voltageRange);
-    std::pair<DigitalPortID, uint8_t> rawPinNumberToPinDefinition(uint8_t pinNumber);
+    bool getDigitalPortIDAndPinNumber(uint8_t pinNumber, DigitalPortID *outPortID, uint8_t *outAdjustedPinNumber);
     template <typename T> static inline std::string toStdString(const T &t) { return dynamic_cast<std::ostringstream &>(std::ostringstream{} << t).str(); }
 
 };

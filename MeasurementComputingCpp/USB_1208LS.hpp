@@ -58,10 +58,10 @@ public:
     void setAnalogInputMode(AnalogInputMode analogInputMode);
     AnalogInputMode analogInputMode() const;
 
-        bool digitalWrite(uint8_t pinNumber, bool state);
-        bool digitalRead(uint8_t pinNumber);
-        bool digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool state);
-        bool digitalRead(DigitalPortID portID, uint8_t pinNumber);
+    bool digitalWrite(uint8_t pinNumber, bool state);
+    bool digitalRead(uint8_t pinNumber);
+    bool digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool state);
+    bool digitalRead(DigitalPortID portID, uint8_t pinNumber);
     short analogRead(uint8_t pinNumber, VoltageRange voltageRange = VoltageRange::V_10);
     float voltageRead(uint8_t pinNumber, VoltageRange voltageRange = VoltageRange::V_10);
     void analogWrite(uint8_t pinNumber, uint16_t state);
@@ -86,7 +86,7 @@ private:
     static uint8_t digitalPortIDToUInt8(DigitalPortID portID);
     static uint8_t digitalPortDirectionToUInt8(PortDirection direction);
     static uint8_t voltageRangeToDifferentialGain(VoltageRange voltageRange);
-    std::pair<DigitalPortID, uint8_t> rawPinNumberToPinDefinition(uint8_t pinNumber);
+    static bool getDigitalPortIDAndPinNumber(uint8_t pinNumber, DigitalPortID *outPortID, uint8_t *outAdjustedPinNumber);
 
     template <typename T> static inline std::string toStdString(const T &t) { return dynamic_cast<std::ostringstream &>(std::ostringstream{} << t).str(); }
 

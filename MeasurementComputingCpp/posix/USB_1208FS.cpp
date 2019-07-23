@@ -12,6 +12,9 @@
 
 namespace MeasurementComputingCpp {
 
+constexpr auto PORT_A_MAX_PIN_NUMBER = BITS_PER_PORT_1208FS;
+constexpr auto PORT_B_MAX_PIN_NUMBER = (BITS_PER_PORT_1208FS*2);
+
 USB_1208FS::USB_1208FS() :
     USB_IO_Base{"USB_1208FS"},
     m_usbDeviceHandle{nullptr},
@@ -56,8 +59,7 @@ USB_1208FS::USB_1208FS(USB_1208FS &&rhs) noexcept :
 
 }
 
-USB_1208FS& USB_1208FS::operator=(USB_1208FS &&rhs) noexcept
-{
+USB_1208FS& USB_1208FS::operator=(USB_1208FS &&rhs) noexcept {
     this->m_usbDeviceHandle = rhs.m_usbDeviceHandle;
     this->m_serialNumber = std::move(rhs.m_serialNumber);
     this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
@@ -66,8 +68,7 @@ USB_1208FS& USB_1208FS::operator=(USB_1208FS &&rhs) noexcept
     return *this;
 }
 
-void USB_1208FS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction)
-{
+void USB_1208FS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction) {
     auto currentPortDirection = this->m_digitalPortMap.find(portID)->second;
     if (currentPortDirection == direction) {
         return;
@@ -79,8 +80,7 @@ void USB_1208FS::setDigitalPortDirection(DigitalPortID portID, PortDirection dir
     this->m_digitalPortMap.find(portID)->second = direction;
 }
 
-uint8_t USB_1208FS::digitalPortIDToUInt8(DigitalPortID portID)
-{
+uint8_t USB_1208FS::digitalPortIDToUInt8(DigitalPortID portID) {
     if (portID == USB_1208FS::DigitalPortID::PortA) {
         return DIO_PORTA;
     } else if (portID == USB_1208FS::DigitalPortID::PortB) {
@@ -90,8 +90,7 @@ uint8_t USB_1208FS::digitalPortIDToUInt8(DigitalPortID portID)
     }
 }
 
-uint8_t USB_1208FS::digitalPortDirectionToUInt8(PortDirection direction)
-{
+uint8_t USB_1208FS::digitalPortDirectionToUInt8(PortDirection direction) {
     if (direction == USB_1208FS::PortDirection::DigitalInput) {
         return DIO_DIR_IN;
     } else if (direction == USB_1208FS::PortDirection::DigitalOutput) {
@@ -101,13 +100,11 @@ uint8_t USB_1208FS::digitalPortDirectionToUInt8(PortDirection direction)
     }
 }
 
-USB_1208FS::PortDirection USB_1208FS::digitalPortDirection(USB_1208FS::DigitalPortID portID) const
-{
+USB_1208FS::PortDirection USB_1208FS::digitalPortDirection(USB_1208FS::DigitalPortID portID) const {
     return this->m_digitalPortMap.find(portID)->second;
 }
 
-bool USB_1208FS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool state)
-{
+bool USB_1208FS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool state) {
     if (this->m_digitalPortMap.find(portID)->second != USB_1208FS::PortDirection::DigitalOutput) {
         return false;
     }
@@ -122,8 +119,7 @@ bool USB_1208FS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool stat
     return true;
 }
 
-bool USB_1208FS::digitalRead(DigitalPortID portID, uint8_t pinNumber)
-{
+bool USB_1208FS::digitalRead(DigitalPortID portID, uint8_t pinNumber) {
     int upperPinNumber{BITS_PER_PORT_1208FS};
     if (pinNumber >= upperPinNumber) {
         throw std::runtime_error("USB_1208FS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
@@ -136,8 +132,40 @@ bool USB_1208FS::digitalRead(DigitalPortID portID, uint8_t pinNumber)
     return static_cast<bool>(CHECK_BIT(allValues, pinNumber));
 }
 
-USB_1208FS::~USB_1208FS()
-{
+bool USB_1208FS::digitalRead(uint8_t pinNumber) {
+    DigitalPortID portID{};
+    uint8_t adjustedPinNumber{};
+    auto result = getDigitalPortIDAndPinNumber(pinNumber, &portID, &adjustedPinNumber);
+    if (!result) {
+        throw std::runtime_error("USB_1024LS::digitalRead(bool): pinNumber must be between 0 and " + toStdString(PORT_B_MAX_PIN_NUMBER) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(PORT_B_MAX_PIN_NUMBER));
+    }
+    return this->digitalRead(portID, adjustedPinNumber);
+}
+
+bool USB_1208FS::digitalWrite(uint8_t pinNumber, bool state) {
+    DigitalPortID portID{};
+    uint8_t adjustedPinNumber{};
+    auto result = getDigitalPortIDAndPinNumber(pinNumber, &portID, &adjustedPinNumber);
+    if (!result) {
+        throw std::runtime_error("USB_1024LS::digitalWrite(uint8_t, bool): pinNumber must be between 0 and " + toStdString(PORT_B_MAX_PIN_NUMBER) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(PORT_B_MAX_PIN_NUMBER));
+    }
+    return this->digitalWrite(portID, adjustedPinNumber, state);
+}
+
+bool USB_1208FS::getDigitalPortIDAndPinNumber(uint8_t pinNumber, DigitalPortID *outPortID, uint8_t *outAdjustedPinNumber) {
+    if (pinNumber < PORT_A_MAX_PIN_NUMBER) {
+        *outPortID = DigitalPortID::PortA;
+        *outAdjustedPinNumber = pinNumber;
+    } else if ( (pinNumber >= PORT_A_MAX_PIN_NUMBER) && (pinNumber < PORT_B_MAX_PIN_NUMBER) ) {
+        *outPortID = DigitalPortID::PortB;
+        *outAdjustedPinNumber = pinNumber - BITS_PER_PORT_1208FS;
+    } else {
+        return false;
+    }
+    return true;
+}
+
+USB_1208FS::~USB_1208FS() {
     libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 1);
     libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_OUT| 2);
     libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 3);
@@ -149,8 +177,7 @@ USB_1208FS::~USB_1208FS()
     libusb_close(this->m_usbDeviceHandle);
 }
 
-uint8_t USB_1208FS::voltageRangeToDifferentialGain(USB_1208FS::VoltageRange voltageRange)
-{
+uint8_t USB_1208FS::voltageRangeToDifferentialGain(USB_1208FS::VoltageRange voltageRange) {
     if (voltageRange == USB_1208FS::VoltageRange::V_20) {
         return BP_20_00V;
     } else if (voltageRange == USB_1208FS::VoltageRange::V_10) {
@@ -172,8 +199,7 @@ uint8_t USB_1208FS::voltageRangeToDifferentialGain(USB_1208FS::VoltageRange volt
 }
 
 
-short USB_1208FS::analogRead(uint8_t pinNumber, USB_1208FS::VoltageRange voltageRange)
-{
+short USB_1208FS::analogRead(uint8_t pinNumber, USB_1208FS::VoltageRange voltageRange) {
     /*
     if ((this->m_analogInputMode == USB_1208FS::AnalogInputMode::SingleEnded) && (voltageRange != USB_1208FS::VoltageRange::V_10)) {
         throw std::runtime_error("analogRead voltage range can only be V_10 in SingleEnded AnalogInputMode");
@@ -204,8 +230,7 @@ short USB_1208FS::analogRead(uint8_t pinNumber, USB_1208FS::VoltageRange voltage
 
 }
 
-float USB_1208FS::voltageRead(uint8_t pinNumber, USB_1208FS::VoltageRange voltageRange)
-{
+float USB_1208FS::voltageRead(uint8_t pinNumber, USB_1208FS::VoltageRange voltageRange) {
     short analogReading{this->analogRead(pinNumber, voltageRange)};
     if (this->m_analogInputMode == USB_1208FS::AnalogInputMode::SingleEnded) {
         return volts_SE(analogReading);
@@ -215,26 +240,22 @@ float USB_1208FS::voltageRead(uint8_t pinNumber, USB_1208FS::VoltageRange voltag
 
 }
 
-void USB_1208FS::setAnalogInputMode(USB_1208FS::AnalogInputMode analogInputMode)
-{
+void USB_1208FS::setAnalogInputMode(USB_1208FS::AnalogInputMode analogInputMode) {
     this->m_analogInputMode = analogInputMode;
 }
 
-USB_1208FS::AnalogInputMode USB_1208FS::analogInputMode() const
-{
+USB_1208FS::AnalogInputMode USB_1208FS::analogInputMode() const {
     return this->m_analogInputMode;
 }
 
-void USB_1208FS::analogWrite(uint8_t pinNumber, uint16_t state)
-{
+void USB_1208FS::analogWrite(uint8_t pinNumber, uint16_t state) {
     if (pinNumber > (NUMBER_OF_ANALOG_OUTPUT_PINS - 1)) {
         throw std::runtime_error("SB_1208FS::analogWrite(uint8_t, uint16_t): analogWrite pin number exceeds maximum pin number (" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(NUMBER_OF_ANALOG_OUTPUT_PINS - 1));
     }
     usbAOut_USB1208FS(this->m_usbDeviceHandle, pinNumber, state);
 }
 
-std::string USB_1208FS::serialNumber() const
-{
+std::string USB_1208FS::serialNumber() const {
     if (!this->m_serialNumber.empty()) {
         return this->m_serialNumber;
     }
@@ -252,8 +273,7 @@ std::string USB_1208FS::serialNumber() const
     return this->m_serialNumber;
 }
 
-float USB_1208FS::analogToVoltage(short analogReading, AnalogInputMode inputMode, VoltageRange voltageRange)
-{
+float USB_1208FS::analogToVoltage(short analogReading, AnalogInputMode inputMode, VoltageRange voltageRange) {
     if (inputMode == AnalogInputMode::SingleEnded) {
         return volts_SE(analogReading);
     } else {
@@ -261,8 +281,7 @@ float USB_1208FS::analogToVoltage(short analogReading, AnalogInputMode inputMode
     }
 }
 
-void USB_1208FS::resetDevice()
-{
+void USB_1208FS::resetDevice() {
     usbReset_USB1208FS(this->m_usbDeviceHandle);
 }
 
