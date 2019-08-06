@@ -252,7 +252,7 @@ USB_IO_Base &USB_1608FS::initialize() {
 
     return *this;
 }
-c
+
 USB_IO_Base &USB_1608FS::deinitialize() {
     if (this->m_usbDeviceHandle != nullptr) {
         usbAInStop_USB1608FS(this->m_usbDeviceHandle);
