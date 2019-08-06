@@ -248,7 +248,9 @@ USB_IO_Base &USB_1024LS::initialize() {
 }
 
 USB_IO_Base &USB_1024LS::deinitialize() {
-    hid_close(this->m_hidDevice);
+    if (this->m_hidDevice != nullptr) {
+        hid_close(this->m_hidDevice);
+    }
     this->m_hidDevice = nullptr;
     this->m_serialNumber = "";
     return *this;

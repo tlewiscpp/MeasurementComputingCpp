@@ -317,15 +317,17 @@ USB_IO_Base &USB_1208FS::initialize() {
 }
 
 USB_IO_Base &USB_1208FS::deinitialize() {
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 1);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_OUT| 2);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 3);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 4);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 5);
-    for (uint8_t i = 0; i < 4; i++) {
-        libusb_release_interface(this->m_usbDeviceHandle, i);
+    if (this->m_usbDeviceHandle != nullptr) {
+        libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 1);
+        libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_OUT | 2);
+        libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 3);
+        libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 4);
+        libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 5);
+        for (uint8_t i = 0; i < 4; i++) {
+            libusb_release_interface(this->m_usbDeviceHandle, i);
+        }
+        libusb_close(this->m_usbDeviceHandle);
     }
-    libusb_close(this->m_usbDeviceHandle);
     this->m_usbDeviceHandle = nullptr;
     this->m_serialNumber.clear();
     return *this;
