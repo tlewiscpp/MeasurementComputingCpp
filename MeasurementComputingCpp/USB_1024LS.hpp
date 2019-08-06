@@ -49,7 +49,9 @@ public:
         bool digitalWrite(uint8_t pinNumber, bool state);
         std::string serialNumber() const;
 
-protected:
+        USB_IO_Base &reinitialize() override;
+
+    protected:
     USB_IO_Base &initialize() override;
     USB_IO_Base &deinitialize() override;
 

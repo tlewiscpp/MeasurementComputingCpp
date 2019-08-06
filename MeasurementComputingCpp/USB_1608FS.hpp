@@ -80,6 +80,9 @@ public:
     std::string serialNumber() const;
     static float analogToVoltage(short analogReading, VoltageRange voltageRange = VoltageRange::V_10);
 
+    USB_IO_Base &reinitialize() override;
+
+
 protected:
     USB_IO_Base &initialize() override;
     USB_IO_Base &deinitialize() override;

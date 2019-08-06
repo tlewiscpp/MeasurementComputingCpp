@@ -299,6 +299,12 @@ uint32_t USB_1208LS::readCounter() {
     return usbReadCounter_USB1208LS(this->m_hidDevice);
 }
 
+USB_IO_Base &USB_1208LS::reinitialize() {
+    this->deinitialize();
+    this->initialize();
+    return *this;
+}
+
 USB_IO_Base &USB_1208LS::initialize() {
     if (this->m_hidDevice != nullptr) {
         this->deinitialize();

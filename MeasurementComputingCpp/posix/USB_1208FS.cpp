@@ -289,6 +289,12 @@ uint32_t USB_1208FS::readCounter() {
     return usbReadCounter_USB1208FS(this->m_usbDeviceHandle);
 }
 
+USB_IO_Base &USB_1208FS::reinitialize() {
+    this->deinitialize();
+    this->initialize();
+    return *this;
+}
+
 USB_IO_Base &USB_1208FS::initialize() {
     if (this->m_usbDeviceHandle != nullptr) {
         this->deinitialize();
