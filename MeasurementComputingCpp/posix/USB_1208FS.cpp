@@ -29,22 +29,16 @@ USB_1208FS::USB_1208FS() :
         throw std::runtime_error("USB_1208FS::USB_1208FS(): libusb_init failed with return code " + toStdString(initResult));
     }
 
-    this->m_usbDeviceHandle = usb_device_find_USB_MCC(USB1208FS_PID, nullptr);
-    if (!this->m_usbDeviceHandle) {
-        throw std::runtime_error("USB_1208FS::USB_1208FS(): USB1208FS device not found");
-    }
-    init_USB1208FS(this->m_usbDeviceHandle);
-
-    usbDConfigPort_USB1208FS(this->m_usbDeviceHandle, DIO_PORTA, DIO_DIR_IN);
-    usbDConfigPort_USB1208FS(this->m_usbDeviceHandle, DIO_PORTB, DIO_DIR_IN);
-
     this->m_digitalPortMap.emplace(USB_1208FS::DigitalPortID::PortA, USB_1208FS::PortDirection::DigitalInput);
     this->m_digitalPortMap.emplace(USB_1208FS::DigitalPortID::PortB, USB_1208FS::PortDirection::DigitalInput);
 
     this->m_digitalOutputTracker.emplace(USB_1208FS::DigitalPortID::PortA, 0);
     this->m_digitalOutputTracker.emplace(USB_1208FS::DigitalPortID::PortB, 0);
 
-    this->resetCounter();
+    this->m_analogOutputTracker.emplace(0, 0); //Analog Output 0
+    this->m_analogOutputTracker.emplace(1, 0); //Analog Output 1
+
+    this->initialize();
 }
 
 
@@ -59,7 +53,7 @@ USB_1208FS::USB_1208FS(USB_1208FS &&rhs) noexcept :
 
 }
 
-USB_1208FS& USB_1208FS::operator=(USB_1208FS &&rhs) noexcept {
+USB_1208FS &USB_1208FS::operator=(USB_1208FS &&rhs) noexcept {
     this->m_usbDeviceHandle = rhs.m_usbDeviceHandle;
     this->m_serialNumber = std::move(rhs.m_serialNumber);
     this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
@@ -68,16 +62,25 @@ USB_1208FS& USB_1208FS::operator=(USB_1208FS &&rhs) noexcept {
     return *this;
 }
 
-void USB_1208FS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction) {
+USB_1208FS &USB_1208FS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction) {
     auto currentPortDirection = this->m_digitalPortMap.find(portID)->second;
-    if (currentPortDirection == direction) {
-        return;
-    }
+    //if (currentPortDirection == direction) {
+    //    return *this;
+    //}
     usbDConfigPort_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), digitalPortDirectionToUInt8(direction));
     if (direction == PortDirection::DigitalOutput) {
-        usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+        if (direction == currentPortDirection) {
+            //If the direction is equal to the port direction, this is a reinitialization
+            auto lastKnownState = this->m_digitalOutputTracker.find(portID)->second;
+            usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), lastKnownState); //0b00000000
+        } else {
+            //Otherwise, clear out and write zeroes to port
+            usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+            this->m_digitalOutputTracker.find(portID)->second = 0x00;
+        }
     }
     this->m_digitalPortMap.find(portID)->second = direction;
+    return *this;
 }
 
 uint8_t USB_1208FS::digitalPortIDToUInt8(DigitalPortID portID) {
@@ -165,18 +168,6 @@ bool USB_1208FS::getDigitalPortIDAndPinNumber(uint8_t pinNumber, DigitalPortID *
     return true;
 }
 
-USB_1208FS::~USB_1208FS() {
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 1);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_OUT| 2);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 3);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 4);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 5);
-    for (uint8_t i = 0; i < 4; i++) {
-        libusb_release_interface(this->m_usbDeviceHandle, i);
-    }
-    libusb_close(this->m_usbDeviceHandle);
-}
-
 uint8_t USB_1208FS::voltageRangeToDifferentialGain(USB_1208FS::VoltageRange voltageRange) {
     if (voltageRange == USB_1208FS::VoltageRange::V_20) {
         return BP_20_00V;
@@ -240,19 +231,22 @@ float USB_1208FS::voltageRead(uint8_t pinNumber, USB_1208FS::VoltageRange voltag
 
 }
 
-void USB_1208FS::setAnalogInputMode(USB_1208FS::AnalogInputMode analogInputMode) {
+USB_1208FS &USB_1208FS::setAnalogInputMode(USB_1208FS::AnalogInputMode analogInputMode) {
     this->m_analogInputMode = analogInputMode;
+    return *this;
 }
 
 USB_1208FS::AnalogInputMode USB_1208FS::analogInputMode() const {
     return this->m_analogInputMode;
 }
 
-void USB_1208FS::analogWrite(uint8_t pinNumber, uint16_t state) {
+USB_1208FS &USB_1208FS::analogWrite(uint8_t pinNumber, uint16_t state) {
     if (pinNumber > (NUMBER_OF_ANALOG_OUTPUT_PINS - 1)) {
-        throw std::runtime_error("SB_1208FS::analogWrite(uint8_t, uint16_t): analogWrite pin number exceeds maximum pin number (" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(NUMBER_OF_ANALOG_OUTPUT_PINS - 1));
+        throw std::runtime_error("USB_1208FS::analogWrite(uint8_t, uint16_t): analogWrite pin number exceeds maximum pin number (" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(NUMBER_OF_ANALOG_OUTPUT_PINS - 1));
     }
+    this->m_analogOutputTracker.find(pinNumber)->second = state;
     usbAOut_USB1208FS(this->m_usbDeviceHandle, pinNumber, state);
+    return *this;
 }
 
 std::string USB_1208FS::serialNumber() const {
@@ -281,17 +275,60 @@ float USB_1208FS::analogToVoltage(short analogReading, AnalogInputMode inputMode
     }
 }
 
-void USB_1208FS::resetDevice() {
+USB_1208FS &USB_1208FS::resetDevice() {
     usbReset_USB1208FS(this->m_usbDeviceHandle);
+    return *this;
 }
 
-void USB_1208FS::resetCounter() {
+USB_1208FS &USB_1208FS::resetCounter() {
     usbInitCounter_USB1208FS(this->m_usbDeviceHandle);
+    return *this;
 }
 
 uint32_t USB_1208FS::readCounter() {
     return usbReadCounter_USB1208FS(this->m_usbDeviceHandle);
 }
+
+USB_IO_Base &USB_1208FS::initialize() {
+    if (this->m_usbDeviceHandle != nullptr) {
+        this->deinitialize();
+    }
+
+
+    this->m_usbDeviceHandle = usb_device_find_USB_MCC(USB1208FS_PID, nullptr);
+    if (!this->m_usbDeviceHandle) {
+        throw std::runtime_error("USB_1208FS::USB_1208FS(): USB1208FS device not found");
+    }
+    init_USB1208FS(this->m_usbDeviceHandle);
+
+    for (const auto &it : this->m_digitalPortMap) {
+        this->setDigitalPortDirection(it.first, it.second);
+    }
+
+    this->resetCounter();
+
+    return *this;
+}
+
+USB_IO_Base &USB_1208FS::deinitialize() {
+    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 1);
+    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_OUT| 2);
+    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 3);
+    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 4);
+    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 5);
+    for (uint8_t i = 0; i < 4; i++) {
+        libusb_release_interface(this->m_usbDeviceHandle, i);
+    }
+    libusb_close(this->m_usbDeviceHandle);
+    this->m_usbDeviceHandle = nullptr;
+    this->m_serialNumber.clear();
+    return *this;
+}
+
+USB_1208FS::~USB_1208FS() {
+    this->deinitialize();
+}
+
 
 
 } //namespace MeasurementComputingCpp

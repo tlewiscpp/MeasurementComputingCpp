@@ -7,6 +7,9 @@
 #include <cstdlib>
 
 #define CHECK_BIT(value,bit) ((value) & (1 << (bit)))
+#define SET_BIT(value,bit) ((value) |= (1 << (bit)))
+#define CLEAR_BIT(value,bit) ((value) &= ~(1 << (bit)))
+#define TOGGLE_BIT(value,bit) ((value) ^= (1 << (bit)))
 
 namespace MeasurementComputingCpp {
 
@@ -20,9 +23,11 @@ constexpr auto PORT_B_MAX_PIN_NUMBER = (BITS_PER_PORT_1208LS*2);
 
 USB_1208LS::USB_1208LS() :
     USB_IO_Base{"USB_1208LS"},
-        m_hidDevice{hid_open(MCC_VID, USB1208LS_PID, nullptr)},
+    m_hidDevice{nullptr},
     m_serialNumber{""},
     m_digitalPortMap{},
+    m_digitalOutputTracker{},
+    m_analogOutputTracker{},
     m_analogInputMode{AnalogInputMode::SingleEnded}
 {
 
@@ -31,17 +36,17 @@ USB_1208LS::USB_1208LS() :
         throw std::runtime_error("USB_1024LS::USB_1024LS(): hid_init failed with return code " + toStdString(initResult));
     }
 
-    if (!this->m_hidDevice) {
-        throw std::runtime_error("USB_1024LS::USB_1024LS(): USB1024LS device NOT found");
-    }
-
-    usbDConfigPort_USB1208LS(this->m_hidDevice, DIO_PORTA, DIO_DIR_IN);
-    usbDConfigPort_USB1208LS(this->m_hidDevice, DIO_PORTB, DIO_DIR_IN);
-
     this->m_digitalPortMap.emplace(USB_1208LS::DigitalPortID::PortA, USB_1208LS::PortDirection::DigitalInput);
     this->m_digitalPortMap.emplace(USB_1208LS::DigitalPortID::PortB, USB_1208LS::PortDirection::DigitalInput);
 
-    this->resetCounter();
+    this->m_digitalOutputTracker.emplace(USB_1208LS::DigitalPortID::PortA, 0);
+    this->m_digitalOutputTracker.emplace(USB_1208LS::DigitalPortID::PortB, 0);
+
+    this->m_analogOutputTracker.emplace(0, 0); //Analog Output 0
+    this->m_analogOutputTracker.emplace(1, 0); //Analog Output 1
+
+    this->initialize();
+
 }
 
 
@@ -50,6 +55,8 @@ USB_1208LS::USB_1208LS(USB_1208LS &&rhs) noexcept :
     m_hidDevice{rhs.m_hidDevice},
     m_serialNumber{std::move(rhs.m_serialNumber)},
     m_digitalPortMap{std::move(rhs.m_digitalPortMap)},
+    m_digitalOutputTracker{std::move(rhs.m_digitalOutputTracker)},
+    m_analogOutputTracker{std::move(rhs.m_analogOutputTracker)},
     m_analogInputMode{rhs.m_analogInputMode}
 {
 
@@ -59,20 +66,31 @@ USB_1208LS& USB_1208LS::operator=(USB_1208LS &&rhs) noexcept {
     this->m_hidDevice = rhs.m_hidDevice;
     this->m_serialNumber = std::move(rhs.m_serialNumber);
     this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
+    this->m_digitalOutputTracker = std::move(rhs.m_digitalOutputTracker);
+    this->m_analogOutputTracker = std::move(rhs.m_analogOutputTracker);
     this->m_analogInputMode = rhs.m_analogInputMode;
     return *this;
 }
 
-void USB_1208LS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction) {
+USB_1208LS &USB_1208LS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction) {
     auto currentPortDirection = this->m_digitalPortMap.find(portID)->second;
-    if (currentPortDirection == direction) {
-        return;
-    }
+    //if (currentPortDirection == direction) {
+    //    return *this;
+    //}
     usbDConfigPort_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), digitalPortDirectionToUInt8(direction));
     if (direction == PortDirection::DigitalOutput) {
-        usbDOut_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+        if (direction == currentPortDirection) {
+            //If the direction is equal to the port direction, this is a reinitialization
+            auto lastKnownState = this->m_digitalOutputTracker.find(portID)->second;
+            usbDOut_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), lastKnownState); //0b00000000
+        } else {
+            //Otherwise, clear out and write zeroes to port
+            usbDOut_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+            this->m_digitalOutputTracker.find(portID)->second = 0x00;
+        }
     }
     this->m_digitalPortMap.find(portID)->second = direction;
+    return *this;
 }
 
 uint8_t USB_1208LS::digitalPortIDToUInt8(DigitalPortID portID) {
@@ -108,6 +126,10 @@ bool USB_1208LS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool stat
     if (this->m_digitalPortMap.find(portID)->second != USB_1208LS::PortDirection::DigitalOutput) {
         return false;
     }
+    //Track the change in the digital output tracker
+    uint8_t *targetPortCurrentState{&(this->m_digitalOutputTracker.find(portID)->second)};
+    state ? SET_BIT(*targetPortCurrentState, pinNumber) : CLEAR_BIT(*targetPortCurrentState, pinNumber);
+
     usbDBitOut_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), pinNumber, static_cast<uint8_t>(state));
     return true;
 }
@@ -222,19 +244,22 @@ float USB_1208LS::voltageRead(uint8_t pinNumber, USB_1208LS::VoltageRange voltag
 
 }
 
-void USB_1208LS::setAnalogInputMode(USB_1208LS::AnalogInputMode analogInputMode) {
+USB_1208LS & USB_1208LS::setAnalogInputMode(USB_1208LS::AnalogInputMode analogInputMode) {
     this->m_analogInputMode = analogInputMode;
+    return *this;
 }
 
 USB_1208LS::AnalogInputMode USB_1208LS::analogInputMode() const {
     return this->m_analogInputMode;
 }
 
-void USB_1208LS::analogWrite(uint8_t pinNumber, uint16_t state) {
+USB_1208LS & USB_1208LS::analogWrite(uint8_t pinNumber, uint16_t state) {
     if (pinNumber > (NUMBER_OF_ANALOG_OUTPUT_PINS - 1)) {
         throw std::runtime_error("USB_1208LS::analogWrite(uint8_t, uint16_t): analogWrite pin number exceeds maximum pin number (" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(NUMBER_OF_ANALOG_OUTPUT_PINS - 1));
     }
+    this->m_analogOutputTracker.find(pinNumber)->second = state;
     usbAOut_USB1208LS(this->m_hidDevice, pinNumber, state);
+    return *this;
 }
 
 std::string USB_1208LS::serialNumber() const {
@@ -260,21 +285,47 @@ float USB_1208LS::analogToVoltage(short analogReading, USB_1208LS::AnalogInputMo
     }
 }
 
-void USB_1208LS::resetDevice() {
+USB_1208LS & USB_1208LS::resetDevice() {
     usbReset_USB1208LS(this->m_hidDevice);
+    return *this;
 }
 
-void USB_1208LS::resetCounter() {
+USB_1208LS & USB_1208LS::resetCounter() {
     usbInitCounter_USB1208LS(this->m_hidDevice);
+    return *this;
 }
 
 uint32_t USB_1208LS::readCounter() {
     return usbReadCounter_USB1208LS(this->m_hidDevice);
 }
 
+USB_IO_Base &USB_1208LS::initialize() {
+    if (this->m_hidDevice != nullptr) {
+        this->deinitialize();
+    }
+    this->m_hidDevice = hid_open(MCC_VID, USB1208LS_PID, nullptr);
+    if (!this->m_hidDevice) {
+        throw std::runtime_error("USB_1024LS::USB_1024LS(): USB1024LS device NOT found");
+    }
+
+    for (const auto &it : this->m_digitalPortMap) {
+        this->setDigitalPortDirection(it.first, it.second);
+    }
+
+    this->resetCounter();
+    return *this;
+}
+
+USB_IO_Base &USB_1208LS::deinitialize() {
+    hid_close(this->m_hidDevice);
+    this->m_hidDevice = nullptr;
+    this->m_serialNumber = "";
+    return *this;
+}
+
 
 USB_1208LS::~USB_1208LS() {
-    hid_close(this->m_hidDevice);
+    this->deinitialize();
 }
 
 

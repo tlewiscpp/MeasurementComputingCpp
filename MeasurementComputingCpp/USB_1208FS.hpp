@@ -55,10 +55,10 @@ public:
     USB_1208FS &operator=(const USB_1208FS &rhs) = delete;
     USB_1208FS &operator=(USB_1208FS &&rhs) noexcept;
 
-    void setDigitalPortDirection(DigitalPortID portID, PortDirection direction);
+    USB_1208FS &setDigitalPortDirection(DigitalPortID portID, PortDirection direction);
     PortDirection digitalPortDirection(DigitalPortID portID) const;
 
-    void setAnalogInputMode(AnalogInputMode analogInputMode);
+    USB_1208FS &setAnalogInputMode(AnalogInputMode analogInputMode);
     AnalogInputMode analogInputMode() const;
 
     bool digitalWrite(uint8_t pinNumber, bool state);
@@ -67,16 +67,21 @@ public:
     bool digitalRead(DigitalPortID portID, uint8_t pinNumber);
     short analogRead(uint8_t pinNumber, VoltageRange voltageRange = VoltageRange::V_10);
     float voltageRead(uint8_t pinNumber, VoltageRange voltageRange = VoltageRange::V_10);
-    void analogWrite(uint8_t pinNumber, uint16_t state);
+    USB_1208FS &analogWrite(uint8_t pinNumber, uint16_t state);
 
-    void resetCounter();
+    USB_1208FS &resetCounter();
     uint32_t readCounter();
-    void resetDevice();
+    USB_1208FS &resetDevice();
 
     std::string serialNumber() const;
     float analogToVoltage(short analogReading, AnalogInputMode inputMode = AnalogInputMode::SingleEnded, VoltageRange voltageRange = VoltageRange::V_10);
 
-private:
+protected:
+    USB_IO_Base &initialize() override;
+    USB_IO_Base &deinitialize() override;
+
+
+    private:
 #if defined(_WIN32)
 	unsigned int m_boardNumber;
 #else
@@ -85,6 +90,7 @@ private:
 #endif //defined(_WIN32)
     std::map<DigitalPortID, PortDirection> m_digitalPortMap;
     std::map<DigitalPortID, uint8_t> m_digitalOutputTracker;
+    std::map<uint8_t, uint16_t> m_analogOutputTracker;
     AnalogInputMode m_analogInputMode;
 
     static uint8_t digitalPortIDToUInt8(DigitalPortID portID);

@@ -8,6 +8,9 @@
 #include "USB_1024LS.hpp"
 
 #define CHECK_BIT(value,bit) ((value) & (1 << (bit)))
+#define SET_BIT(value,bit) ((value) |= (1 << (bit)))
+#define CLEAR_BIT(value,bit) ((value) &= ~(1 << (bit)))
+#define TOGGLE_BIT(value,bit) ((value) ^= (1 << (bit)))
 
 namespace MeasurementComputingCpp {
 
@@ -18,30 +21,25 @@ constexpr auto PORT_C_HIGH_MAX_PIN_NUMBER = (BITS_PER_PORT_1024LS*3);
 
 USB_1024LS::USB_1024LS() :
     USB_IO_Base{"USB_1024LS"},
-    m_hidDevice{hid_open(MCC_VID, USB1024LS_PID, nullptr)},
+    m_hidDevice{nullptr},
     m_serialNumber{""},
-    m_digitalPortMap{}
+    m_digitalPortMap{},
+    m_digitalOutputTracker{}
 {
     int initResult{hid_init()};
     if (initResult != 0) {
         throw std::runtime_error("USB_1024LS::USB_1024LS(): hid_init failed with return code " + toStdString(initResult));
     }
 
-    if (!this->m_hidDevice) {
-        throw std::runtime_error("USB_1024LS::USB_1024LS(): USB1024LS device NOT found");
-    }
-
-    usbDConfigPort_USB1024LS(this->m_hidDevice, DIO_PORTA, DIO_DIR_IN);
-    usbDConfigPort_USB1024LS(this->m_hidDevice, DIO_PORTB, DIO_DIR_IN);
-    usbDConfigPort_USB1024LS(this->m_hidDevice, DIO_PORTC_LOW, DIO_DIR_IN);
-    usbDConfigPort_USB1024LS(this->m_hidDevice, DIO_PORTC_HI, DIO_DIR_IN);
-
     this->m_digitalPortMap.emplace(USB_1024LS::DigitalPortID::PortA, USB_1024LS::PortDirection::DigitalInput);
     this->m_digitalPortMap.emplace(USB_1024LS::DigitalPortID::PortB, USB_1024LS::PortDirection::DigitalInput);
     this->m_digitalPortMap.emplace(USB_1024LS::DigitalPortID::PortCLow, USB_1024LS::PortDirection::DigitalInput);
     this->m_digitalPortMap.emplace(USB_1024LS::DigitalPortID::PortCHigh, USB_1024LS::PortDirection::DigitalInput);
 
-    this->resetCounter();
+    this->m_digitalOutputTracker.emplace(USB_1024LS::DigitalPortID::PortA, 0);
+    this->m_digitalOutputTracker.emplace(USB_1024LS::DigitalPortID::PortB, 0);
+
+    this->initialize();
 
 }
 
@@ -49,7 +47,8 @@ USB_1024LS::USB_1024LS(USB_1024LS &&rhs) noexcept :
     USB_IO_Base{"USB_1024LS"},
     m_hidDevice{rhs.m_hidDevice},
     m_serialNumber{std::move(rhs.m_serialNumber)},
-    m_digitalPortMap{std::move(rhs.m_digitalPortMap)}
+    m_digitalPortMap{std::move(rhs.m_digitalPortMap)},
+    m_digitalOutputTracker{std::move(rhs.m_digitalOutputTracker)}
 {
 
 }
@@ -58,6 +57,7 @@ USB_1024LS& USB_1024LS::operator=(USB_1024LS &&rhs) noexcept {
     this->m_hidDevice = rhs.m_hidDevice;
     this->m_serialNumber = std::move(rhs.m_serialNumber);
     this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
+    this->m_digitalOutputTracker = std::move(rhs.m_digitalOutputTracker);
     return *this;
 }
 
@@ -85,16 +85,25 @@ uint8_t USB_1024LS::digitalPortDirectionToUInt8(PortDirection direction) {
     }
 }
 
-void USB_1024LS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction) {
+USB_1024LS & USB_1024LS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction) {
     auto currentPortDirection = this->m_digitalPortMap.find(portID)->second;
-    if (currentPortDirection == direction) {
-        return;
-    }
+    //if (currentPortDirection == direction) {
+    //    return *this;
+    //}
     usbDConfigPort_USB1024LS(this->m_hidDevice, digitalPortIDToUInt8(portID), digitalPortDirectionToUInt8(direction));
     if (direction == PortDirection::DigitalOutput) {
-        usbDOut_USB1024LS(this->m_hidDevice, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+        if (direction == currentPortDirection) {
+            //If the direction is equal to the port direction, this is a reinitialization
+            auto lastKnownState = this->m_digitalOutputTracker.find(portID)->second;
+            usbDOut_USB1024LS(this->m_hidDevice, digitalPortIDToUInt8(portID), lastKnownState); //0b00000000
+        } else {
+            //Otherwise, clear out and write zeroes to port
+            usbDOut_USB1024LS(this->m_hidDevice, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+            this->m_digitalOutputTracker.find(portID)->second = 0x00;
+        }
     }
     this->m_digitalPortMap.find(portID)->second = direction;
+    return *this;
 }
 
 USB_1024LS::PortDirection USB_1024LS::digitalPortDirection(USB_1024LS::DigitalPortID portID) const {
@@ -117,6 +126,10 @@ bool USB_1024LS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool stat
     if (this->m_digitalPortMap.find(portID)->second != USB_1024LS::PortDirection::DigitalOutput) {
         return false;
     }
+    //Track the change in the digital output tracker
+    uint8_t *targetPortCurrentState{&(this->m_digitalOutputTracker.find(portID)->second)};
+    state ? SET_BIT(*targetPortCurrentState, pinNumber) : CLEAR_BIT(*targetPortCurrentState, pinNumber);
+
     usbDBitOut_USB1024LS(this->m_hidDevice, digitalPortIDToUInt8(portID), pinNumber, static_cast<uint8_t>(state));
     return true;
 }
@@ -160,8 +173,7 @@ bool USB_1024LS::getDigitalPortIDAndPinNumber(uint8_t pinNumber, DigitalPortID *
     return true;
 }
 
-bool USB_1024LS::digitalRead(DigitalPortID portID, uint8_t pinNumber)
-{
+bool USB_1024LS::digitalRead(DigitalPortID portID, uint8_t pinNumber) {
     int upperPinNumber{0};
     if ( (portID == DigitalPortID::PortA) || (portID == DigitalPortID::PortB) ) {
         upperPinNumber = BITS_PER_PORT_1024LS;
@@ -197,20 +209,48 @@ std::string USB_1024LS::serialNumber() const {
     return this->m_serialNumber;
 }
 
-void USB_1024LS::resetDevice() {
+USB_1024LS & USB_1024LS::resetDevice() {
     usbReset_USB1024LS(this->m_hidDevice);
+    return *this;
 }
 
-void USB_1024LS::resetCounter() {
+USB_1024LS & USB_1024LS::resetCounter() {
     usbInitCounter_USB1024LS(this->m_hidDevice);
+    return *this;
 }
 
 uint32_t USB_1024LS::readCounter() {
     return usbReadCounter_USB1024LS(this->m_hidDevice);
 }
 
-USB_1024LS::~USB_1024LS() {
+USB_IO_Base &USB_1024LS::initialize() {
+    if (this->m_hidDevice != nullptr) {
+        this->deinitialize();
+    }
+    this->m_hidDevice = hid_open(MCC_VID, USB1024LS_PID, nullptr);
+    if (!this->m_hidDevice) {
+        throw std::runtime_error("USB_1024LS::USB_1024LS(): USB1024LS device NOT found");
+    }
+
+    for (const auto &it : this->m_digitalPortMap) {
+        this->setDigitalPortDirection(it.first, it.second);
+    }
+
+    this->resetCounter();
+
+    return *this;
+}
+
+USB_IO_Base &USB_1024LS::deinitialize() {
     hid_close(this->m_hidDevice);
+    this->m_hidDevice = nullptr;
+    this->m_serialNumber = "";
+    return *this;
+}
+
+
+USB_1024LS::~USB_1024LS() {
+    this->deinitialize();
 }
 
 

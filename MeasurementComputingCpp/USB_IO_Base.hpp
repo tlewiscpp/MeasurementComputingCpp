@@ -27,6 +27,10 @@ public:
 
 #endif //defined(_WIN32)
 
+protected:
+        virtual USB_IO_Base &initialize() = 0;
+        virtual USB_IO_Base &deinitialize() = 0;
+
 private:
     std::string m_name;
 

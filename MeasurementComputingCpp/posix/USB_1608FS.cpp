@@ -25,24 +25,6 @@ USB_1608FS::USB_1608FS() :
         throw std::runtime_error("USB_1608FS::USB_1608FS(): libusb_init failed with return code " + toStdString(initResult));
     }
 
-    this->m_usbDeviceHandle = usb_device_find_USB_MCC(USB1608FS_PID, nullptr);
-    if (!this->m_usbDeviceHandle) {
-        throw std::runtime_error("USB_1608FS::USB_1608FS(): USB1608FS device not found");
-    }
-    this->m_analogInputCalibrationTable = new Calibration_AIN*[4];
-    for (int i = 0; i < 8; i++) {
-        this->m_analogInputCalibrationTable[i] = new Calibration_AIN[8];
-    }
-    Calibration_AIN_t tempTable[4][8];
-    usbBuildCalTable_USB1608FS(this->m_usbDeviceHandle, tempTable);
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 8; j++) {
-            this->m_analogInputCalibrationTable[i][j] = tempTable[i][j];
-        }
-    }
-
-    usbDConfigPort_USB1608FS(this->m_usbDeviceHandle, DIO_DIR_IN);
-
     this->m_digitalPortMap.emplace(USB_1608FS::DigitalPinNumber::Pin0, USB_1608FS::PortDirection::DigitalInput);
     this->m_digitalPortMap.emplace(USB_1608FS::DigitalPinNumber::Pin1, USB_1608FS::PortDirection::DigitalInput);
     this->m_digitalPortMap.emplace(USB_1608FS::DigitalPinNumber::Pin2, USB_1608FS::PortDirection::DigitalInput);
@@ -52,7 +34,19 @@ USB_1608FS::USB_1608FS() :
     this->m_digitalPortMap.emplace(USB_1608FS::DigitalPinNumber::Pin6, USB_1608FS::PortDirection::DigitalInput);
     this->m_digitalPortMap.emplace(USB_1608FS::DigitalPinNumber::Pin7, USB_1608FS::PortDirection::DigitalInput);
 
-    this->resetCounter();
+    this->m_digitalOutputTracker.emplace(USB_1608FS::DigitalPinNumber::Pin0, false);
+    this->m_digitalOutputTracker.emplace(USB_1608FS::DigitalPinNumber::Pin1, false);
+    this->m_digitalOutputTracker.emplace(USB_1608FS::DigitalPinNumber::Pin2, false);
+    this->m_digitalOutputTracker.emplace(USB_1608FS::DigitalPinNumber::Pin3, false);
+    this->m_digitalOutputTracker.emplace(USB_1608FS::DigitalPinNumber::Pin4, false);
+    this->m_digitalOutputTracker.emplace(USB_1608FS::DigitalPinNumber::Pin5, false);
+    this->m_digitalOutputTracker.emplace(USB_1608FS::DigitalPinNumber::Pin6, false);
+    this->m_digitalOutputTracker.emplace(USB_1608FS::DigitalPinNumber::Pin7, false);
+
+    this->m_analogOutputTracker.emplace(0, 0); //Analog Output 0
+    this->m_analogOutputTracker.emplace(1, 0); //Analog Output 1
+
+    this->initialize();
 }
 
 
@@ -71,7 +65,7 @@ USB_1608FS::USB_1608FS(USB_1608FS &&rhs) noexcept :
     }
 }
 
-USB_1608FS& USB_1608FS::operator=(USB_1608FS &&rhs) noexcept {
+USB_1608FS &USB_1608FS::operator=(USB_1608FS &&rhs) noexcept {
     this->m_usbDeviceHandle = rhs.m_usbDeviceHandle;
     this->m_digitalPortMap = std::move(rhs.m_digitalPortMap);
     this->m_serialNumber = std::move(rhs.m_serialNumber);
@@ -84,7 +78,7 @@ USB_1608FS& USB_1608FS::operator=(USB_1608FS &&rhs) noexcept {
     return *this;
 }
 
-void USB_1608FS::setDigitalPortDirection(PortDirection portDirection) {
+USB_1608FS &USB_1608FS::setDigitalPortDirection(PortDirection portDirection) {
     usbDConfigPort_USB1608FS(this->m_usbDeviceHandle, this->digitalPortDirectionToUInt8(portDirection));
     if (portDirection == PortDirection::DigitalOutput) {
         usbDOut_USB1608FS(this->m_usbDeviceHandle, 0x00); //0b00000000
@@ -92,18 +86,28 @@ void USB_1608FS::setDigitalPortDirection(PortDirection portDirection) {
     for (auto &it : this->m_digitalPortMap) {
         it.second = portDirection;
     }
+    return *this;
 }
 
-void USB_1608FS::setDigitalPortDirection(DigitalPinNumber pinNumber, PortDirection direction) {
+USB_1608FS &USB_1608FS::setDigitalPortDirection(DigitalPinNumber pinNumber, PortDirection direction) {
     auto currentPortDirection = this->m_digitalPortMap.find(pinNumber)->second;
-    if (currentPortDirection == direction) {
-        return;
-    }
+    //if (currentPortDirection == direction) {
+    //    return *this;
+    //}
     usbDConfigBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), digitalPortDirectionToUInt8(direction));
     if (direction == PortDirection::DigitalOutput) {
-        usbDOutBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), 0x00); //0b00000000
+        if (direction == currentPortDirection) {
+            //If the direction is equal to the port direction, this is a reinitialization
+            auto lastKnownState = this->m_digitalOutputTracker.find(pinNumber)->second;
+            usbDOutBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), lastKnownState); //0b00000000
+        } else {
+            //Otherwise, clear out and write zeroes to the port
+            this->m_digitalOutputTracker.find(pinNumber)->second = false;
+            usbDOutBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), 0x00); //0b00000000
+        }
     }
     this->m_digitalPortMap.find(pinNumber)->second = direction;
+    return *this;
 }
 
 uint8_t USB_1608FS::digitalPortDirectionToUInt8(PortDirection direction) {
@@ -124,6 +128,10 @@ bool USB_1608FS::digitalWrite(DigitalPinNumber pinNumber, bool state) {
     if (this->m_digitalPortMap.find(pinNumber)->second != USB_1608FS::PortDirection::DigitalOutput) {
         return false;
     }
+
+    //Track the change in the digital output tracker
+    this->m_digitalOutputTracker.find(pinNumber)->second = state;
+
     usbDOutBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), static_cast<uint8_t>(state));
     return true;
 }
@@ -137,26 +145,7 @@ bool USB_1608FS::digitalRead(DigitalPinNumber pinNumber) {
     return static_cast<bool>(bitValue);
 }
 
-USB_1608FS::~USB_1608FS() {
-    for (int i = 0; i < 8; i++) {
-        delete[] this->m_analogInputCalibrationTable[i];
-    }
-    delete[] this->m_analogInputCalibrationTable;
-    usbAInStop_USB1608FS(this->m_usbDeviceHandle);
-    usbReset_USB1608FS(this->m_usbDeviceHandle);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 2);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 3);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 4);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 5);
-    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 6);
-    for (uint8_t i = 0; i < 7; i++) {
-        libusb_release_interface(this->m_usbDeviceHandle, i);
-    }
-    libusb_close(this->m_usbDeviceHandle);
-}
-
-uint8_t USB_1608FS::voltageRangeToAnalogGain(USB_1608FS::VoltageRange voltageRange)
-{
+uint8_t USB_1608FS::voltageRangeToAnalogGain(USB_1608FS::VoltageRange voltageRange) {
     if (voltageRange == USB_1608FS::VoltageRange::V_10) {
         return BP_10_00V;
     } else if (voltageRange == USB_1608FS::VoltageRange::V_5) {
@@ -178,8 +167,7 @@ uint8_t USB_1608FS::voltageRangeToAnalogGain(USB_1608FS::VoltageRange voltageRan
 }
 
 
-short USB_1608FS::analogRead(AnalogPinNumber pinNumber, USB_1608FS::VoltageRange voltageRange)
-{
+short USB_1608FS::analogRead(AnalogPinNumber pinNumber, USB_1608FS::VoltageRange voltageRange) {
     //TODO FixMe
     Calibration_AIN_t tempTable[4][8];
     for (int i = 0; i < 4; i++) {
@@ -190,13 +178,11 @@ short USB_1608FS::analogRead(AnalogPinNumber pinNumber, USB_1608FS::VoltageRange
     return usbAIn_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), this->voltageRangeToAnalogGain(voltageRange), tempTable);
 }
 
-float USB_1608FS::voltageRead(AnalogPinNumber pinNumber, USB_1608FS::VoltageRange voltageRange)
-{
+float USB_1608FS::voltageRead(AnalogPinNumber pinNumber, USB_1608FS::VoltageRange voltageRange) {
     return analogToVoltage(this->analogRead(pinNumber, voltageRange), voltageRange);
 }
 
-std::string USB_1608FS::serialNumber() const
-{
+std::string USB_1608FS::serialNumber() const {
     if (!this->m_serialNumber.empty()) {
         return this->m_serialNumber;
     }
@@ -214,22 +200,76 @@ std::string USB_1608FS::serialNumber() const
     return this->m_serialNumber;
 }
 
-float USB_1608FS::analogToVoltage(short analogReading, VoltageRange voltageRange)
-{
+float USB_1608FS::analogToVoltage(short analogReading, VoltageRange voltageRange) {
     return volts_USB1608FS(voltageRangeToAnalogGain(voltageRange), analogReading);
 }
 
-void USB_1608FS::resetDevice()
-{
+USB_1608FS & USB_1608FS::resetDevice() {
     usbReset_USB1608FS(this->m_usbDeviceHandle);
+    return *this;
 }
 
-void USB_1608FS::resetCounter() {
+USB_1608FS & USB_1608FS::resetCounter() {
     usbInitCounter_USB1608FS(this->m_usbDeviceHandle);
+    return *this;
 }
 
 uint32_t USB_1608FS::readCounter() {
     return usbReadCounter_USB1608FS(this->m_usbDeviceHandle);
+}
+
+USB_IO_Base &USB_1608FS::initialize() {
+    if (this->m_usbDeviceHandle != nullptr) {
+        this->deinitialize();
+    }
+    this->m_usbDeviceHandle = usb_device_find_USB_MCC(USB1608FS_PID, nullptr);
+    if (!this->m_usbDeviceHandle) {
+        throw std::runtime_error("USB_1608FS::USB_1608FS(): USB1608FS device not found");
+    }
+    this->m_analogInputCalibrationTable = new Calibration_AIN*[4];
+    for (int i = 0; i < 8; i++) {
+        this->m_analogInputCalibrationTable[i] = new Calibration_AIN[8];
+    }
+    Calibration_AIN_t tempTable[4][8];
+    usbBuildCalTable_USB1608FS(this->m_usbDeviceHandle, tempTable);
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 8; j++) {
+            this->m_analogInputCalibrationTable[i][j] = tempTable[i][j];
+        }
+    }
+
+    for (const auto &it : this->m_digitalPortMap) {
+        this->setDigitalPortDirection(it.first, it.second);
+    }
+    this->m_serialNumber.clear();
+    this->resetCounter();
+
+    return *this;
+}
+
+USB_IO_Base &USB_1608FS::deinitialize() {
+    usbAInStop_USB1608FS(this->m_usbDeviceHandle);
+    usbReset_USB1608FS(this->m_usbDeviceHandle);
+    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 2);
+    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 3);
+    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 4);
+    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 5);
+    libusb_clear_halt(this->m_usbDeviceHandle, LIBUSB_ENDPOINT_IN | 6);
+    for (uint8_t i = 0; i < 7; i++) {
+        libusb_release_interface(this->m_usbDeviceHandle, i);
+    }
+    libusb_close(this->m_usbDeviceHandle);
+    this->m_usbDeviceHandle = nullptr;
+    this->m_serialNumber = "";
+    return *this;
+}
+
+USB_1608FS::~USB_1608FS() {
+    for (int i = 0; i < 8; i++) {
+        delete[] this->m_analogInputCalibrationTable[i];
+    }
+    delete[] this->m_analogInputCalibrationTable;
+    this->deinitialize();
 }
 
 

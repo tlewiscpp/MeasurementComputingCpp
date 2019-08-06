@@ -63,8 +63,8 @@ public:
     USB_1608FS &operator=(const USB_1608FS &rhs) = delete;
     USB_1608FS &operator=(USB_1608FS &&rhs) noexcept;
 
-    void setDigitalPortDirection(DigitalPinNumber pinNumber, PortDirection direction);
-    void setDigitalPortDirection(PortDirection portDirection);
+    USB_1608FS &setDigitalPortDirection(DigitalPinNumber pinNumber, PortDirection direction);
+    USB_1608FS &setDigitalPortDirection(PortDirection portDirection);
     PortDirection digitalPortDirection(DigitalPinNumber pinNumber) const;
 
     bool digitalWrite(DigitalPinNumber pinNumber, bool state);
@@ -73,12 +73,17 @@ public:
     short analogRead(AnalogPinNumber pinNumber, VoltageRange voltageRange = VoltageRange::V_10);
     float voltageRead(AnalogPinNumber pinNumber, VoltageRange voltageRange = VoltageRange::V_10);
 
-    void resetCounter();
+    USB_1608FS &resetCounter();
     uint32_t readCounter();
-    void resetDevice();
+    USB_1608FS &resetDevice();
 
     std::string serialNumber() const;
     static float analogToVoltage(short analogReading, VoltageRange voltageRange = VoltageRange::V_10);
+
+protected:
+    USB_IO_Base &initialize() override;
+    USB_IO_Base &deinitialize() override;
+
 
 private:
 #if defined(_WIN32)
@@ -89,6 +94,8 @@ private:
         mutable std::string m_serialNumber;
 #endif //defined(_WIN32)
         std::map<DigitalPinNumber, PortDirection> m_digitalPortMap;
+        std::map<DigitalPinNumber, bool> m_digitalOutputTracker;
+        std::map<uint8_t, uint16_t> m_analogOutputTracker;
 
     static uint8_t digitalPortDirectionToUInt8(PortDirection direction);
     static uint8_t voltageRangeToAnalogGain(VoltageRange voltageRange);
