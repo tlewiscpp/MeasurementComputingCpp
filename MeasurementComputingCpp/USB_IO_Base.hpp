@@ -2,6 +2,7 @@
 #define MEASUREMENTCOMPUTINGCPP_USB_IO_BASE_HPP
 
 #include <string>
+#include <mutex>
 
 namespace MeasurementComputingCpp {
 
@@ -31,6 +32,7 @@ public:
 protected:
         virtual USB_IO_Base &initialize() = 0;
         virtual USB_IO_Base &deinitialize() = 0;
+        mutable std::recursive_mutex m_ioMutex;
 
 private:
     std::string m_name;

@@ -86,6 +86,7 @@ uint8_t USB_1024LS::digitalPortDirectionToUInt8(PortDirection direction) {
 }
 
 USB_1024LS & USB_1024LS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     auto currentPortDirection = this->m_digitalPortMap.find(portID)->second;
     //if (currentPortDirection == direction) {
     //    return *this;
@@ -111,6 +112,7 @@ USB_1024LS::PortDirection USB_1024LS::digitalPortDirection(USB_1024LS::DigitalPo
 }
 
 bool USB_1024LS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool state) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     int upperPinNumber{0};
     if ( (portID == DigitalPortID::PortA) || (portID == DigitalPortID::PortB) ) {
         upperPinNumber = BITS_PER_PORT_1024LS;
@@ -135,6 +137,7 @@ bool USB_1024LS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool stat
 }
 
 bool USB_1024LS::digitalRead(uint8_t pinNumber) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     DigitalPortID portID{};
     uint8_t adjustedPinNumber{};
     auto result = getDigitalPortIDAndPinNumber(pinNumber, &portID, &adjustedPinNumber);
@@ -145,6 +148,7 @@ bool USB_1024LS::digitalRead(uint8_t pinNumber) {
 }
 
 bool USB_1024LS::digitalWrite(uint8_t pinNumber, bool state) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     DigitalPortID portID{};
     uint8_t adjustedPinNumber{};
     auto result = getDigitalPortIDAndPinNumber(pinNumber, &portID, &adjustedPinNumber);
@@ -174,6 +178,7 @@ bool USB_1024LS::getDigitalPortIDAndPinNumber(uint8_t pinNumber, DigitalPortID *
 }
 
 bool USB_1024LS::digitalRead(DigitalPortID portID, uint8_t pinNumber) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     int upperPinNumber{0};
     if ( (portID == DigitalPortID::PortA) || (portID == DigitalPortID::PortB) ) {
         upperPinNumber = BITS_PER_PORT_1024LS;
@@ -195,6 +200,7 @@ bool USB_1024LS::digitalRead(DigitalPortID portID, uint8_t pinNumber) {
 }
 
 std::string USB_1024LS::serialNumber() const {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     if (!this->m_serialNumber.empty()) {
         return this->m_serialNumber;
     }
@@ -210,20 +216,24 @@ std::string USB_1024LS::serialNumber() const {
 }
 
 USB_1024LS & USB_1024LS::resetDevice() {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     usbReset_USB1024LS(this->m_hidDevice);
     return *this;
 }
 
 USB_1024LS & USB_1024LS::resetCounter() {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     usbInitCounter_USB1024LS(this->m_hidDevice);
     return *this;
 }
 
 uint32_t USB_1024LS::readCounter() {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     return usbReadCounter_USB1024LS(this->m_hidDevice);
 }
 
 USB_IO_Base &USB_1024LS::reinitialize() {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     this->deinitialize();
     this->initialize();
     return *this;

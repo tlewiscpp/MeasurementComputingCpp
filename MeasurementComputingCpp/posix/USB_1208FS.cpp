@@ -63,6 +63,7 @@ USB_1208FS &USB_1208FS::operator=(USB_1208FS &&rhs) noexcept {
 }
 
 USB_1208FS &USB_1208FS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     auto currentPortDirection = this->m_digitalPortMap.find(portID)->second;
     //if (currentPortDirection == direction) {
     //    return *this;
@@ -108,6 +109,7 @@ USB_1208FS::PortDirection USB_1208FS::digitalPortDirection(USB_1208FS::DigitalPo
 }
 
 bool USB_1208FS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool state) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     if (this->m_digitalPortMap.find(portID)->second != USB_1208FS::PortDirection::DigitalOutput) {
         return false;
     }
@@ -123,6 +125,7 @@ bool USB_1208FS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool stat
 }
 
 bool USB_1208FS::digitalRead(DigitalPortID portID, uint8_t pinNumber) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     int upperPinNumber{BITS_PER_PORT_1208FS};
     if (pinNumber >= upperPinNumber) {
         throw std::runtime_error("USB_1208FS::digitalWrite(DigitalPortID, uint8_t, bool): pinNumber for ports A and B must be between 0 and " + toStdString(upperPinNumber) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(upperPinNumber));
@@ -136,6 +139,7 @@ bool USB_1208FS::digitalRead(DigitalPortID portID, uint8_t pinNumber) {
 }
 
 bool USB_1208FS::digitalRead(uint8_t pinNumber) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     DigitalPortID portID{};
     uint8_t adjustedPinNumber{};
     auto result = getDigitalPortIDAndPinNumber(pinNumber, &portID, &adjustedPinNumber);
@@ -146,6 +150,7 @@ bool USB_1208FS::digitalRead(uint8_t pinNumber) {
 }
 
 bool USB_1208FS::digitalWrite(uint8_t pinNumber, bool state) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     DigitalPortID portID{};
     uint8_t adjustedPinNumber{};
     auto result = getDigitalPortIDAndPinNumber(pinNumber, &portID, &adjustedPinNumber);
@@ -191,6 +196,7 @@ uint8_t USB_1208FS::voltageRangeToDifferentialGain(USB_1208FS::VoltageRange volt
 
 
 short USB_1208FS::analogRead(uint8_t pinNumber, USB_1208FS::VoltageRange voltageRange) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     /*
     if ((this->m_analogInputMode == USB_1208FS::AnalogInputMode::SingleEnded) && (voltageRange != USB_1208FS::VoltageRange::V_10)) {
         throw std::runtime_error("analogRead voltage range can only be V_10 in SingleEnded AnalogInputMode");
@@ -241,6 +247,7 @@ USB_1208FS::AnalogInputMode USB_1208FS::analogInputMode() const {
 }
 
 USB_1208FS &USB_1208FS::analogWrite(uint8_t pinNumber, uint16_t state) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     if (pinNumber > (NUMBER_OF_ANALOG_OUTPUT_PINS - 1)) {
         throw std::runtime_error("USB_1208FS::analogWrite(uint8_t, uint16_t): analogWrite pin number exceeds maximum pin number (" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(NUMBER_OF_ANALOG_OUTPUT_PINS - 1));
     }
@@ -250,6 +257,7 @@ USB_1208FS &USB_1208FS::analogWrite(uint8_t pinNumber, uint16_t state) {
 }
 
 std::string USB_1208FS::serialNumber() const {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     if (!this->m_serialNumber.empty()) {
         return this->m_serialNumber;
     }
@@ -276,20 +284,24 @@ float USB_1208FS::analogToVoltage(short analogReading, AnalogInputMode inputMode
 }
 
 USB_1208FS &USB_1208FS::resetDevice() {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     usbReset_USB1208FS(this->m_usbDeviceHandle);
     return *this;
 }
 
 USB_1208FS &USB_1208FS::resetCounter() {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     usbInitCounter_USB1208FS(this->m_usbDeviceHandle);
     return *this;
 }
 
 uint32_t USB_1208FS::readCounter() {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     return usbReadCounter_USB1208FS(this->m_usbDeviceHandle);
 }
 
 USB_IO_Base &USB_1208FS::reinitialize() {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     this->deinitialize();
     this->initialize();
     return *this;

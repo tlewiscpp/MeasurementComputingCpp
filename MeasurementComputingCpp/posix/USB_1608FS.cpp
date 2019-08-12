@@ -90,6 +90,7 @@ USB_1608FS &USB_1608FS::setDigitalPortDirection(PortDirection portDirection) {
 }
 
 USB_1608FS &USB_1608FS::setDigitalPortDirection(DigitalPinNumber pinNumber, PortDirection direction) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     auto currentPortDirection = this->m_digitalPortMap.find(pinNumber)->second;
     //if (currentPortDirection == direction) {
     //    return *this;
@@ -125,6 +126,7 @@ USB_1608FS::PortDirection USB_1608FS::digitalPortDirection(USB_1608FS::DigitalPi
 }
 
 bool USB_1608FS::digitalWrite(DigitalPinNumber pinNumber, bool state) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     if (this->m_digitalPortMap.find(pinNumber)->second != USB_1608FS::PortDirection::DigitalOutput) {
         return false;
     }
@@ -137,6 +139,7 @@ bool USB_1608FS::digitalWrite(DigitalPinNumber pinNumber, bool state) {
 }
 
 bool USB_1608FS::digitalRead(DigitalPinNumber pinNumber) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     if (this->m_digitalPortMap.find(pinNumber)->second != USB_1608FS::PortDirection::DigitalInput) {
         return false;
     }
@@ -168,6 +171,7 @@ uint8_t USB_1608FS::voltageRangeToAnalogGain(USB_1608FS::VoltageRange voltageRan
 
 
 short USB_1608FS::analogRead(AnalogPinNumber pinNumber, USB_1608FS::VoltageRange voltageRange) {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     //TODO FixMe
     Calibration_AIN_t tempTable[4][8];
     for (int i = 0; i < 4; i++) {
@@ -183,6 +187,7 @@ float USB_1608FS::voltageRead(AnalogPinNumber pinNumber, USB_1608FS::VoltageRang
 }
 
 std::string USB_1608FS::serialNumber() const {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     if (!this->m_serialNumber.empty()) {
         return this->m_serialNumber;
     }
@@ -205,20 +210,24 @@ float USB_1608FS::analogToVoltage(short analogReading, VoltageRange voltageRange
 }
 
 USB_1608FS & USB_1608FS::resetDevice() {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     usbReset_USB1608FS(this->m_usbDeviceHandle);
     return *this;
 }
 
 USB_1608FS & USB_1608FS::resetCounter() {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     usbInitCounter_USB1608FS(this->m_usbDeviceHandle);
     return *this;
 }
 
 uint32_t USB_1608FS::readCounter() {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     return usbReadCounter_USB1608FS(this->m_usbDeviceHandle);
 }
 
 USB_IO_Base &USB_1608FS::reinitialize() {
+    std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     this->deinitialize();
     this->initialize();
     return *this;
