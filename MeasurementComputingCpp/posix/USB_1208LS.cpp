@@ -83,11 +83,15 @@ USB_1208LS &USB_1208LS::setDigitalPortDirection(DigitalPortID portID, PortDirect
         if (direction == currentPortDirection) {
             //If the direction is equal to the port direction, this is a reinitialization
             auto lastKnownState = this->m_digitalOutputTracker.find(portID)->second;
-            usbDOut_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), lastKnownState); //0b00000000
+            if (this->m_hidDevice) {
+                usbDOut_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), lastKnownState); //0b00000000
+            }
         } else {
             //Otherwise, clear out and write zeroes to port
-            usbDOut_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), 0x00); //0b00000000
-            this->m_digitalOutputTracker.find(portID)->second = 0x00;
+            if (this->m_hidDevice) {
+                usbDOut_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+                this->m_digitalOutputTracker.find(portID)->second = 0x00;
+            }
         }
     }
     this->m_digitalPortMap.find(portID)->second = direction;
@@ -131,9 +135,12 @@ bool USB_1208LS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool stat
     //Track the change in the digital output tracker
     uint8_t *targetPortCurrentState{&(this->m_digitalOutputTracker.find(portID)->second)};
     state ? SET_BIT(*targetPortCurrentState, pinNumber) : CLEAR_BIT(*targetPortCurrentState, pinNumber);
-
-    usbDBitOut_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), pinNumber, static_cast<uint8_t>(state));
-    return true;
+    if (this->m_hidDevice) {
+        usbDBitOut_USB1208LS(this->m_hidDevice, digitalPortIDToUInt8(portID), pinNumber, static_cast<uint8_t>(state));
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool USB_1208LS::digitalRead(DigitalPortID portID, uint8_t pinNumber) {
@@ -146,8 +153,12 @@ bool USB_1208LS::digitalRead(DigitalPortID portID, uint8_t pinNumber) {
         return false;
     }
     uint8_t allValues{0};
-    usbDIn_USB1208LS(this->m_hidDevice, this->digitalPortIDToUInt8(portID), &allValues);
-    return static_cast<bool>(CHECK_BIT(allValues, pinNumber));
+    if (this->m_hidDevice) {
+        usbDIn_USB1208LS(this->m_hidDevice, this->digitalPortIDToUInt8(portID), &allValues);
+        return static_cast<bool>(CHECK_BIT(allValues, pinNumber));
+    } else {
+        return false;
+    }
 }
 
 bool USB_1208LS::digitalRead(uint8_t pinNumber) {
@@ -233,9 +244,17 @@ short USB_1208LS::analogRead(uint8_t pinNumber, USB_1208LS::VoltageRange voltage
                                  + ")" );
     }
     if (this->m_analogInputMode == USB_1208LS::AnalogInputMode::SingleEnded) {
-        return usbAIn_USB1208LS(this->m_hidDevice, pinNumber, SE_10_00V);
+        if (this->m_hidDevice) {
+            return usbAIn_USB1208LS(this->m_hidDevice, pinNumber, SE_10_00V);
+        } else {
+            return 0;
+        }
     } else {
-        return usbAIn_USB1208LS(this->m_hidDevice, pinNumber, this->voltageRangeToDifferentialGain(voltageRange));
+        if (this->m_hidDevice) {
+            return usbAIn_USB1208LS(this->m_hidDevice, pinNumber, this->voltageRangeToDifferentialGain(voltageRange));
+        } else {
+            return 0;
+        }
     }
 
 }
@@ -276,7 +295,9 @@ std::string USB_1208LS::serialNumber() const {
     }
     wchar_t tempWideSerialNumber[SERIAL_NUMBER_BUFFER_1208LS];
     wmemset(tempWideSerialNumber, '\0', SERIAL_NUMBER_BUFFER_1208LS);
-    hid_get_serial_number_string(this->m_hidDevice, tempWideSerialNumber, SERIAL_NUMBER_BUFFER_1208LS);
+    if (this->m_hidDevice) {
+        hid_get_serial_number_string(this->m_hidDevice, tempWideSerialNumber, SERIAL_NUMBER_BUFFER_1208LS);
+    }
 
     char tempSerialNumber[SERIAL_NUMBER_BUFFER_1208LS];
     memset(tempSerialNumber, '\0', SERIAL_NUMBER_BUFFER_1208LS);
@@ -295,19 +316,27 @@ float USB_1208LS::analogToVoltage(short analogReading, USB_1208LS::AnalogInputMo
 
 USB_1208LS & USB_1208LS::resetDevice() {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
-    usbReset_USB1208LS(this->m_hidDevice);
+    if (this->m_hidDevice) {
+        usbReset_USB1208LS(this->m_hidDevice);
+    }
     return *this;
 }
 
 USB_1208LS & USB_1208LS::resetCounter() {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
-    usbInitCounter_USB1208LS(this->m_hidDevice);
+    if (this->m_hidDevice) {
+        usbInitCounter_USB1208LS(this->m_hidDevice);
+    }
     return *this;
 }
 
 uint32_t USB_1208LS::readCounter() {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
-    return usbReadCounter_USB1208LS(this->m_hidDevice);
+    if (this->m_hidDevice) {
+        return usbReadCounter_USB1208LS(this->m_hidDevice);
+    } else {
+        return 0;
+    }
 }
 
 USB_IO_Base &USB_1208LS::reinitialize() {

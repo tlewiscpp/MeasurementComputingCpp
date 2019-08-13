@@ -81,7 +81,9 @@ USB_1608FS &USB_1608FS::operator=(USB_1608FS &&rhs) noexcept {
 USB_1608FS &USB_1608FS::setDigitalPortDirection(PortDirection portDirection) {
     usbDConfigPort_USB1608FS(this->m_usbDeviceHandle, this->digitalPortDirectionToUInt8(portDirection));
     if (portDirection == PortDirection::DigitalOutput) {
-        usbDOut_USB1608FS(this->m_usbDeviceHandle, 0x00); //0b00000000
+        if (this->m_usbDeviceHandle) {
+            usbDOut_USB1608FS(this->m_usbDeviceHandle, 0x00); //0b00000000
+        }
     }
     for (auto &it : this->m_digitalPortMap) {
         it.second = portDirection;
@@ -100,11 +102,15 @@ USB_1608FS &USB_1608FS::setDigitalPortDirection(DigitalPinNumber pinNumber, Port
         if (direction == currentPortDirection) {
             //If the direction is equal to the port direction, this is a reinitialization
             auto lastKnownState = this->m_digitalOutputTracker.find(pinNumber)->second;
-            usbDOutBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), lastKnownState); //0b00000000
+            if (this->m_usbDeviceHandle) {
+                usbDOutBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), lastKnownState); //0b00000000
+            }
         } else {
             //Otherwise, clear out and write zeroes to the port
-            this->m_digitalOutputTracker.find(pinNumber)->second = false;
-            usbDOutBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), 0x00); //0b00000000
+            if (this->m_usbDeviceHandle) {
+                this->m_digitalOutputTracker.find(pinNumber)->second = false;
+                usbDOutBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), 0x00); //0b00000000
+            }
         }
     }
     this->m_digitalPortMap.find(pinNumber)->second = direction;
@@ -133,9 +139,12 @@ bool USB_1608FS::digitalWrite(DigitalPinNumber pinNumber, bool state) {
 
     //Track the change in the digital output tracker
     this->m_digitalOutputTracker.find(pinNumber)->second = state;
-
-    usbDOutBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), static_cast<uint8_t>(state));
-    return true;
+    if (this->m_usbDeviceHandle) {
+        usbDOutBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), static_cast<uint8_t>(state));
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool USB_1608FS::digitalRead(DigitalPinNumber pinNumber) {
@@ -144,8 +153,12 @@ bool USB_1608FS::digitalRead(DigitalPinNumber pinNumber) {
         return false;
     }
     uint8_t bitValue{0};
-    usbDInBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), &bitValue);
-    return static_cast<bool>(bitValue);
+    if (this->m_usbDeviceHandle) {
+        usbDInBit_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), &bitValue);
+        return static_cast<bool>(bitValue);
+    } else {
+        return false;
+    }
 }
 
 uint8_t USB_1608FS::voltageRangeToAnalogGain(USB_1608FS::VoltageRange voltageRange) {
@@ -179,7 +192,11 @@ short USB_1608FS::analogRead(AnalogPinNumber pinNumber, USB_1608FS::VoltageRange
             tempTable[i][j] = this->m_analogInputCalibrationTable[i][j];
         }
     }
-    return usbAIn_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), this->voltageRangeToAnalogGain(voltageRange), tempTable);
+    if (this->m_usbDeviceHandle) {
+        return usbAIn_USB1608FS(this->m_usbDeviceHandle, static_cast<uint8_t>(pinNumber), this->voltageRangeToAnalogGain(voltageRange), tempTable);
+    } else {
+        return 0;
+    }
 }
 
 float USB_1608FS::voltageRead(AnalogPinNumber pinNumber, USB_1608FS::VoltageRange voltageRange) {
@@ -193,7 +210,9 @@ std::string USB_1608FS::serialNumber() const {
     }
     unsigned char tempSerialNumber[SERIAL_NUMBER_BUFFER_1608FS];
     memset(tempSerialNumber, '\0', SERIAL_NUMBER_BUFFER_1608FS);
-    getUsbSerialNumber(this->m_usbDeviceHandle, tempSerialNumber);
+    if (this->m_usbDeviceHandle) {
+        getUsbSerialNumber(this->m_usbDeviceHandle, tempSerialNumber);
+    }
 
     char tempSerialNumberChar[SERIAL_NUMBER_BUFFER_1608FS];
     memset(tempSerialNumberChar, '\0', SERIAL_NUMBER_BUFFER_1608FS);
@@ -211,19 +230,27 @@ float USB_1608FS::analogToVoltage(short analogReading, VoltageRange voltageRange
 
 USB_1608FS & USB_1608FS::resetDevice() {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
-    usbReset_USB1608FS(this->m_usbDeviceHandle);
+    if (this->m_usbDeviceHandle) {
+        usbReset_USB1608FS(this->m_usbDeviceHandle);
+    }
     return *this;
 }
 
 USB_1608FS & USB_1608FS::resetCounter() {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
-    usbInitCounter_USB1608FS(this->m_usbDeviceHandle);
+    if (this->m_usbDeviceHandle) {
+        usbInitCounter_USB1608FS(this->m_usbDeviceHandle);
+    }
     return *this;
 }
 
 uint32_t USB_1608FS::readCounter() {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
-    return usbReadCounter_USB1608FS(this->m_usbDeviceHandle);
+    if (this->m_usbDeviceHandle) {
+        return usbReadCounter_USB1608FS(this->m_usbDeviceHandle);
+    } else {
+        return 0;
+    }
 }
 
 USB_IO_Base &USB_1608FS::reinitialize() {

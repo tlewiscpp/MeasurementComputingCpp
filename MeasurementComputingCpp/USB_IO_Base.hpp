@@ -38,7 +38,7 @@ private:
     std::string m_name;
 
 #if defined(_WIN32)
-        unsigned int m_boardNumber;
+    unsigned int m_boardNumber;
 	mutable std::string m_serialNumber;
 #endif //defined(_WIN32)
 };

@@ -73,11 +73,15 @@ USB_1208FS &USB_1208FS::setDigitalPortDirection(DigitalPortID portID, PortDirect
         if (direction == currentPortDirection) {
             //If the direction is equal to the port direction, this is a reinitialization
             auto lastKnownState = this->m_digitalOutputTracker.find(portID)->second;
-            usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), lastKnownState); //0b00000000
+            if (this->m_usbDeviceHandle) {
+                usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), lastKnownState); //0b00000000
+            }
         } else {
             //Otherwise, clear out and write zeroes to port
-            usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), 0x00); //0b00000000
-            this->m_digitalOutputTracker.find(portID)->second = 0x00;
+            if (this->m_usbDeviceHandle) {
+                usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+                this->m_digitalOutputTracker.find(portID)->second = 0x00;
+            }
         }
     }
     this->m_digitalPortMap.find(portID)->second = direction;
@@ -120,7 +124,9 @@ bool USB_1208FS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool stat
     //Then, we write it out the the port
     uint8_t *targetPortCurrentState{&(this->m_digitalOutputTracker.find(portID)->second)};
     state ? SET_BIT(*targetPortCurrentState, pinNumber) : CLEAR_BIT(*targetPortCurrentState, pinNumber);
-    usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), *targetPortCurrentState);
+    if (this->m_usbDeviceHandle) {
+        usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), *targetPortCurrentState);
+    }
     return true;
 }
 
@@ -134,8 +140,13 @@ bool USB_1208FS::digitalRead(DigitalPortID portID, uint8_t pinNumber) {
         return false;
     }
     uint8_t allValues{0};
-    usbDIn_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), &allValues);
-    return static_cast<bool>(CHECK_BIT(allValues, pinNumber));
+    if (this->m_usbDeviceHandle) {
+        usbDIn_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), &allValues);
+        return static_cast<bool>(CHECK_BIT(allValues, pinNumber));
+    } else {
+        return false;
+    }
+
 }
 
 bool USB_1208FS::digitalRead(uint8_t pinNumber) {
@@ -220,9 +231,17 @@ short USB_1208FS::analogRead(uint8_t pinNumber, USB_1208FS::VoltageRange voltage
                                  + ")" );
     }
     if (this->m_analogInputMode == USB_1208FS::AnalogInputMode::SingleEnded) {
-        return usbAIn_USB1208FS(this->m_usbDeviceHandle, pinNumber, SE_10_00V);
+        if (this->m_usbDeviceHandle) {
+            return usbAIn_USB1208FS(this->m_usbDeviceHandle, pinNumber, SE_10_00V);
+        } else {
+            return 0;
+        }
     } else {
-        return usbAIn_USB1208FS(this->m_usbDeviceHandle, pinNumber, this->voltageRangeToDifferentialGain(voltageRange));
+        if (this->m_usbDeviceHandle) {
+            return usbAIn_USB1208FS(this->m_usbDeviceHandle, pinNumber, this->voltageRangeToDifferentialGain(voltageRange));
+        } else {
+            return 0;
+        }
     }
 
 }
@@ -285,19 +304,27 @@ float USB_1208FS::analogToVoltage(short analogReading, AnalogInputMode inputMode
 
 USB_1208FS &USB_1208FS::resetDevice() {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
-    usbReset_USB1208FS(this->m_usbDeviceHandle);
+    if (this->m_usbDeviceHandle) {
+        usbReset_USB1208FS(this->m_usbDeviceHandle);
+    }
     return *this;
 }
 
 USB_1208FS &USB_1208FS::resetCounter() {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
-    usbInitCounter_USB1208FS(this->m_usbDeviceHandle);
+    if (this->m_usbDeviceHandle) {
+        usbInitCounter_USB1208FS(this->m_usbDeviceHandle);
+    }
     return *this;
 }
 
 uint32_t USB_1208FS::readCounter() {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
-    return usbReadCounter_USB1208FS(this->m_usbDeviceHandle);
+    if (this->m_usbDeviceHandle) {
+        return usbReadCounter_USB1208FS(this->m_usbDeviceHandle);
+    } else {
+        return 0;
+    }
 }
 
 USB_IO_Base &USB_1208FS::reinitialize() {
