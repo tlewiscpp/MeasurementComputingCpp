@@ -156,6 +156,14 @@ bool USB_1208LS::digitalRead(DigitalPortID portID, uint8_t pinNumber) {
     if (this->m_hidDevice) {
         usbDIn_USB1208LS(this->m_hidDevice, this->digitalPortIDToUInt8(portID), &allValues);
         return static_cast<bool>(CHECK_BIT(allValues, pinNumber));
+        /*
+        auto returnValue = static_cast<bool>(CHECK_BIT(allValues, pinNumber));
+        if (returnValue) {
+            return true;
+        } else {
+            return false;
+        }
+        */
     } else {
         return false;
     }
