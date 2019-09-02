@@ -62,24 +62,41 @@ USB_1208FS &USB_1208FS::operator=(USB_1208FS &&rhs) noexcept {
     return *this;
 }
 
+uint8_t USB_1208FS::digitalReadPort(DigitalPortID portID) {
+
+}
+
+USB1208FS &USB_1208FS::digitalWritePort(DigitalPortID portID, uint8_t state) {
+
+}
+
 USB_1208FS &USB_1208FS::setDigitalPortDirection(DigitalPortID portID, PortDirection direction) {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     auto currentPortDirection = this->m_digitalPortMap.find(portID)->second;
     //if (currentPortDirection == direction) {
     //    return *this;
     //}
-    usbDConfigPort_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), digitalPortDirectionToUInt8(direction));
+    auto configResult = usbDConfigPort_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), digitalPortDirectionToUInt8(direction));
+    if (configResult < 0) {
+        throw std::runtime_error("USB1208FS::setDigitalPortDirection: Failed to config port");
+    }
     if (direction == PortDirection::DigitalOutput) {
         if (direction == currentPortDirection) {
             //If the direction is equal to the port direction, this is a reinitialization
             auto lastKnownState = this->m_digitalOutputTracker.find(portID)->second;
             if (this->m_usbDeviceHandle) {
-                usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), lastKnownState); //0b00000000
+                auto result = usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), lastKnownState); //0b00000000
+                if (result < 0) {
+                    throw std::runtime_error("USB1208FS::setDigitalPortDirection: Failed to write port");
+                }
             }
         } else {
             //Otherwise, clear out and write zeroes to port
             if (this->m_usbDeviceHandle) {
-                usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+                auto result = usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), 0x00); //0b00000000
+                if (result < 0) {
+                    throw std::runtime_error("USB1208FS::setDigitalPortDirection: Failed to write port");
+                }
                 this->m_digitalOutputTracker.find(portID)->second = 0x00;
             }
         }
@@ -115,7 +132,7 @@ USB_1208FS::PortDirection USB_1208FS::digitalPortDirection(USB_1208FS::DigitalPo
 bool USB_1208FS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool state) {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     if (this->m_digitalPortMap.find(portID)->second != USB_1208FS::PortDirection::DigitalOutput) {
-        return false;
+        this->setDigitalPortDirection(portID, USB_1208FS::PortDirection::DigitalOutput);
     }
     //Load the last known bitset for the port (ex if pin 0 was already written high, the loaded value would be
     //0b10000000, so we need to preserve that while flipping our target bit
@@ -125,7 +142,10 @@ bool USB_1208FS::digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool stat
     uint8_t *targetPortCurrentState{&(this->m_digitalOutputTracker.find(portID)->second)};
     state ? SET_BIT(*targetPortCurrentState, pinNumber) : CLEAR_BIT(*targetPortCurrentState, pinNumber);
     if (this->m_usbDeviceHandle) {
-        usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), *targetPortCurrentState);
+        auto result = usbDOut_USB1208FS(this->m_usbDeviceHandle, digitalPortIDToUInt8(portID), *targetPortCurrentState);
+        if (result < 0) {
+            throw std::runtime_error("USB1208FS::digitalWrite: Failed to write port");
+        }
     }
     return true;
 }
@@ -271,7 +291,10 @@ USB_1208FS &USB_1208FS::analogWrite(uint8_t pinNumber, uint16_t state) {
         throw std::runtime_error("USB_1208FS::analogWrite(uint8_t, uint16_t): analogWrite pin number exceeds maximum pin number (" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(NUMBER_OF_ANALOG_OUTPUT_PINS - 1));
     }
     this->m_analogOutputTracker.find(pinNumber)->second = state;
-    usbAOut_USB1208FS(this->m_usbDeviceHandle, pinNumber, state);
+    auto result = usbAOut_USB1208FS(this->m_usbDeviceHandle, pinNumber, state);
+    if (result < 0) {
+        throw std::runtime_error("USB1208FS::analogWrite: Failed to write port");
+    }
     return *this;
 }
 
@@ -344,7 +367,10 @@ USB_IO_Base &USB_1208FS::initialize() {
     if (!this->m_usbDeviceHandle) {
         throw std::runtime_error("USB_1208FS::USB_1208FS(): USB1208FS device not found");
     }
-    init_USB1208FS(this->m_usbDeviceHandle);
+    auto result = init_USB1208FS(this->m_usbDeviceHandle);
+    if (result < 0) {
+        throw std::runtime_error("USB1208FS::initialize: Failed to initialize");
+    }
 
     for (const auto &it : this->m_digitalPortMap) {
         this->setDigitalPortDirection(it.first, it.second);

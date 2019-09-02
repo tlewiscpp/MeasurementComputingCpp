@@ -65,6 +65,8 @@ public:
     bool digitalRead(uint8_t pinNumber);
     bool digitalWrite(DigitalPortID portID, uint8_t pinNumber, bool state);
     bool digitalRead(DigitalPortID portID, uint8_t pinNumber);
+    uint8_t digitalReadPort(DigitalPortID portID);
+    USB1208FS &digitalWritePort(DigitalPortID portID, uint8_t state);
     short analogRead(uint8_t pinNumber, VoltageRange voltageRange = VoltageRange::V_10);
     float voltageRead(uint8_t pinNumber, VoltageRange voltageRange = VoltageRange::V_10);
     USB_1208FS &analogWrite(uint8_t pinNumber, uint16_t state);
