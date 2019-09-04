@@ -134,7 +134,7 @@ USB_1608FS::PortDirection USB_1608FS::digitalPortDirection(USB_1608FS::DigitalPi
 bool USB_1608FS::digitalWrite(DigitalPinNumber pinNumber, bool state) {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     if (this->m_digitalPortMap.find(pinNumber)->second != USB_1608FS::PortDirection::DigitalOutput) {
-        return false;
+        this->setDigitalPortDirection(pinNumber, USB_1608FS::PortDirection::DigitalOutput);
     }
 
     //Track the change in the digital output tracker
@@ -150,7 +150,7 @@ bool USB_1608FS::digitalWrite(DigitalPinNumber pinNumber, bool state) {
 bool USB_1608FS::digitalRead(DigitalPinNumber pinNumber) {
     std::lock_guard<std::recursive_mutex> ioLock{this->m_ioMutex};
     if (this->m_digitalPortMap.find(pinNumber)->second != USB_1608FS::PortDirection::DigitalInput) {
-        return false;
+        this->setDigitalPortDirection(pinNumber, USB_1608FS::PortDirection::DigitalInput);
     }
     uint8_t bitValue{0};
     if (this->m_usbDeviceHandle) {
