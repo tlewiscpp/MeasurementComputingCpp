@@ -2,7 +2,6 @@ cmake_minimum_required (VERSION 3.1)
 set(CMAKE_CXX_STANDARD 14)
 project (MeasurementComputingCpp CXX)
 
-
 set (MCCUSB_LIBUSB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/mccusb-root/Linux_Drivers/USB/")
 set (SOURCE_ROOT "${CMAKE_SOURCE_DIR}/src")
 set (INCLUDE_ROOT "${CMAKE_SOURCE_DIR}/include/")

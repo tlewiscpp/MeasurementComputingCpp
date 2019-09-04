@@ -11,4 +11,5 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+add_subdirectory(mccusb-root)
 add_subdirectory(src)
