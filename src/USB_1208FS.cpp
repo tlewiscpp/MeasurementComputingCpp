@@ -371,7 +371,7 @@ USB_IO_Base &USB_1208FS::initialize() {
     }
     auto result = init_USB1208FS(this->m_usbDeviceHandle);
     if (result < 0) {
-        throw std::runtime_error("USB_1208FS::initialize: Failed to initialize");
+        //throw std::runtime_error("USB_1208FS::initialize: Failed to initialize");
     }
 
     for (const auto &it : this->m_digitalPortMap) {
