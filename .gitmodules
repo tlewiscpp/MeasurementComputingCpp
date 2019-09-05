@@ -2,3 +2,6 @@
     path = MeasurementComputingCpp/posix/mccusb-root/Linux_Drivers
     url = https://github.com/wjasper/Linux_Drivers
 
+[submodule "mccusb-root/Linux_Drivers"]
+	path = mccusb-root/Linux_Drivers
+	url = https://github.com/wjasper/Linux_Drivers
