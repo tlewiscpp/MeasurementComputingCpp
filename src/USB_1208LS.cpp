@@ -33,7 +33,7 @@ USB_1208LS::USB_1208LS() :
 
     int initResult{hid_init()};
     if (initResult != 0) {
-        throw std::runtime_error("USB_1024LS::USB_1024LS: hid_init failed with return code " + toStdString(initResult));
+        throw std::runtime_error("USB_1208S::USB_1208LS: hid_init failed with return code " + toStdString(initResult));
     }
 
     this->m_digitalPortMap.emplace(USB_1208LS::DigitalPortID::PortA, USB_1208LS::PortDirection::DigitalInput);
@@ -182,7 +182,7 @@ bool USB_1208LS::digitalRead(uint8_t pinNumber) {
     uint8_t adjustedPinNumber{};
     auto result = getDigitalPortIDAndPinNumber(pinNumber, &portID, &adjustedPinNumber);
     if (!result) {
-        throw std::runtime_error("USB_1024LS::digitalRead: pinNumber must be between 0 and " + toStdString(PORT_B_MAX_PIN_NUMBER) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(PORT_B_MAX_PIN_NUMBER));
+        throw std::runtime_error("USB_1208LS::digitalRead: pinNumber must be between 0 and " + toStdString(PORT_B_MAX_PIN_NUMBER) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(PORT_B_MAX_PIN_NUMBER));
     }
     return this->digitalRead(portID, adjustedPinNumber);
 }
@@ -193,7 +193,7 @@ bool USB_1208LS::digitalWrite(uint8_t pinNumber, bool state) {
     uint8_t adjustedPinNumber{};
     auto result = getDigitalPortIDAndPinNumber(pinNumber, &portID, &adjustedPinNumber);
     if (!result) {
-        throw std::runtime_error("USB_1024LS::digitalWrite: pinNumber must be between 0 and " + toStdString(PORT_B_MAX_PIN_NUMBER) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(PORT_B_MAX_PIN_NUMBER));
+        throw std::runtime_error("USB_1208LS::digitalWrite: pinNumber must be between 0 and " + toStdString(PORT_B_MAX_PIN_NUMBER) + "(" + toStdString(static_cast<int>(pinNumber)) + " > " + toStdString(PORT_B_MAX_PIN_NUMBER));
     }
     return this->digitalWrite(portID, adjustedPinNumber, state);
 }
@@ -367,7 +367,7 @@ USB_IO_Base &USB_1208LS::initialize() {
     }
     this->m_hidDevice = hid_open(MCC_VID, USB1208LS_PID, nullptr);
     if (!this->m_hidDevice) {
-        throw std::runtime_error("USB_1024LS::USB_1024LS: USB1024LS device NOT found");
+        throw std::runtime_error("USB_1208LS::USB_1208LS: USB1208LS device NOT found");
     }
 
     for (const auto &it : this->m_digitalPortMap) {
